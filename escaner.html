@@ -1,0 +1,377 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+  <meta name="robots" content="noindex">
+  <title>Escáner QR · CMDV</title>
+  <link rel="icon" href="logo.png">
+  <style>
+    :root { --verde: #1b6b42; --verde-claro: #e9f3ed; --texto: #1f2a24; --texto-2: #5b6b62; --borde: #dfe7e2; --fondo: #f3f6f4;
+      --azul: #1d5fa8; --azul-claro: #e8f0fb; --naranja: #b35c00; --naranja-claro: #fdf0d9; --rojo: #b42318; --rojo-claro: #fde7e5; }
+    * { box-sizing: border-box; }
+    body { margin: 0; font-family: Arial, Helvetica, sans-serif; background: var(--fondo); color: var(--texto); }
+    main { max-width: 760px; margin: 0 auto; padding: 14px 16px 10px; }
+    .volver { display: inline-block; margin-bottom: 10px; color: var(--verde); font-weight: bold; text-decoration: none; font-size: 14px; }
+    .modos { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; background: #fff; border: 1px solid var(--borde); border-radius: 14px; padding: 5px; margin-bottom: 12px; }
+    .modos button { border: 0; border-radius: 10px; padding: 12px 6px; font-size: 15px; font-weight: bold; background: transparent; color: var(--texto-2); cursor: pointer; }
+    .modos button.activo { background: var(--verde); color: #fff; }
+    .modos button small { display: block; font-weight: normal; font-size: 11.5px; opacity: .85; margin-top: 2px; }
+    .camara { background: #0d1f16; border-radius: 14px; overflow: hidden; position: relative; min-height: 220px; display: flex; align-items: center; justify-content: center; }
+    #lector { width: 100%; }
+    #lector video { width: 100% !important; display: block; }
+    .camara .apagada { color: #cfe3d7; text-align: center; padding: 26px 16px; font-size: 14px; }
+    .camara .apagada b { display: block; font-size: 40px; margin-bottom: 6px; }
+    .acciones { display: flex; flex-wrap: wrap; gap: 8px; margin: 10px 0 12px; }
+    .btn { border: 1px solid var(--borde); background: #fff; color: var(--texto); border-radius: 10px; padding: 11px 14px; font-size: 14.5px; font-weight: bold; cursor: pointer; }
+    .btn.prim { background: var(--verde); border-color: var(--verde); color: #fff; flex: 1 1 160px; }
+    .btn:disabled { opacity: .5; cursor: default; }
+    label.btn input { display: none; }
+    .resultado { border-radius: 14px; padding: 16px; margin-bottom: 12px; border: 2px solid var(--borde); background: #fff; min-height: 96px; transition: background .2s, border-color .2s; }
+    .resultado .mov { font-size: 13px; font-weight: bold; letter-spacing: .08em; text-transform: uppercase; }
+    .resultado .nom { font-size: 22px; font-weight: bold; margin: 4px 0 3px; line-height: 1.2; }
+    .resultado .det { font-size: 14.5px; color: var(--texto-2); }
+    .resultado .avs { margin-top: 8px; display: flex; flex-wrap: wrap; gap: 6px; }
+    .resultado .avs span { background: #fff; border-radius: 999px; padding: 3px 10px; font-size: 12.5px; font-weight: bold; color: var(--naranja); border: 1px solid #f1c27d; }
+    .resultado .botones { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
+    .resultado .botones button { border: 1px solid rgba(0,0,0,.15); background: rgba(255,255,255,.8); border-radius: 8px; padding: 7px 11px; font-size: 13px; cursor: pointer; }
+    .resultado.ok { background: var(--verde-claro); border-color: var(--verde); } .resultado.ok .mov { color: var(--verde); }
+    .resultado.salida { background: var(--naranja-claro); border-color: #e0a04a; } .resultado.salida .mov { color: var(--naranja); }
+    .resultado.regreso { background: var(--azul-claro); border-color: #8fb3df; } .resultado.regreso .mov { color: var(--azul); }
+    .resultado.alerta { border-color: #d98a00; box-shadow: 0 0 0 3px rgba(217,138,0,.18); }
+    .resultado.error { background: var(--rojo-claro); border-color: var(--rojo); } .resultado.error .mov { color: var(--rojo); }
+    .resultado.info { background: #f1f4f2; border-color: #b9c6be; }
+    .resultado.espera { opacity: .75; }
+    .manual { position: relative; margin-bottom: 14px; }
+    .manual input { width: 100%; padding: 12px; border: 1px solid #c9d4cd; border-radius: 10px; font-size: 15px; background: #fff; }
+    .sugerencias { position: absolute; z-index: 5; left: 0; right: 0; background: #fff; border: 1px solid var(--borde); border-radius: 10px; margin-top: 4px; box-shadow: 0 8px 22px rgba(0,0,0,.12); max-height: 290px; overflow: auto; }
+    .sugerencias button { display: block; width: 100%; text-align: left; border: 0; border-bottom: 1px solid #eef2ef; background: #fff; padding: 11px 12px; font-size: 14.5px; cursor: pointer; }
+    .sugerencias button small { color: var(--texto-2); margin-left: 6px; }
+    .kpis { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 12px; }
+    .kpi { background: #fff; border: 1px solid var(--borde); border-radius: 12px; padding: 10px 12px; }
+    .kpi .n { font-size: 26px; font-weight: bold; line-height: 1.1; }
+    .kpi .t { font-size: 12.5px; color: var(--texto-2); margin-top: 2px; }
+    .kpi.naranja .n { color: var(--naranja); } .kpi.azul .n { color: var(--azul); } .kpi.rojo .n { color: var(--rojo); } .kpi.verde .n { color: var(--verde); }
+    .panel { background: #fff; border: 1px solid var(--borde); border-radius: 12px; padding: 12px 14px; margin-bottom: 12px; }
+    .panel h3 { margin: 0 0 8px; font-size: 13px; letter-spacing: .07em; text-transform: uppercase; color: var(--texto-2); display: flex; justify-content: space-between; gap: 8px; }
+    .panel h3 small { text-transform: none; letter-spacing: 0; font-weight: normal; }
+    .fila { display: flex; justify-content: space-between; gap: 10px; padding: 8px 0; border-top: 1px solid #eef2ef; font-size: 14px; }
+    .fila:first-of-type { border-top: 0; }
+    .fila .q { color: var(--texto-2); font-size: 12.5px; }
+    .fila .h { white-space: nowrap; font-weight: bold; }
+    .fila.atrasado .h { color: var(--rojo); }
+    .tag { display: inline-block; font-size: 11px; font-weight: bold; padding: 2px 7px; border-radius: 999px; margin-right: 4px; }
+    .tag.SALIDA { background: var(--naranja-claro); color: var(--naranja); } .tag.REGRESO { background: var(--azul-claro); color: var(--azul); }
+    .tag.INGRESO { background: var(--verde-claro); color: var(--verde); } .tag.ERROR { background: var(--rojo-claro); color: var(--rojo); }
+    .vacio { color: var(--texto-2); font-size: 14px; padding: 6px 0; }
+    .nota { font-size: 12.5px; color: var(--texto-2); margin: 4px 0 12px; }
+    .sin-acceso { max-width: 560px; margin: 40px auto; background: #fff; border: 1px solid var(--borde); border-radius: 12px; padding: 24px; text-align: center; }
+    .oculto { display: none !important; }
+    .cab { background: linear-gradient(135deg,#01512f,#013d24); color: #fff; padding: 10px 16px; display: flex; align-items: center; gap: 12px; }
+    .cab img { width: 42px; height: 42px; object-fit: contain; }
+    .cab h1 { margin: 0; font-size: 18px; } .cab p { margin: 2px 0 0; font-size: 12.5px; opacity: .85; }
+    .cab span { margin-left: auto; font-size: 12px; opacity: .85; text-align: right; }
+    @media (max-width: 480px) { .resultado .nom { font-size: 19px; } .kpi .n { font-size: 22px; } }
+  </style>
+</head>
+<body>
+<header class="cab"><img src="logo.png" alt=""><div><h1>Escáner QR</h1><p>Colegio Maese da Vinci · Inspectoría</p></div><span id="quien"></span></header>
+
+<main>
+<div class="sin-acceso oculto" id="sinPase">
+    <h2 style="margin-top:0;">Abra el escáner desde el Portal CMDV</h2>
+    <p id="sinPaseTxt">Por seguridad, el escáner se abre con un pase temporal que entrega el portal.</p>
+    <p><a class="btn prim" style="display:inline-block;text-decoration:none" href="https://script.google.com/a/macros/maesedavinci.cl/s/AKfycby5El-LDjt9FJdh4cDT4AhVooXrjE9rZN2FYO9qHoBs0dLoiEB2xpQ1ptQpCgl2ZwAZtA/exec?app=escaner">Ir al Portal CMDV</a></p>
+  </div>
+  <div id="app">
+  <a class="volver" href="https://script.google.com/a/macros/maesedavinci.cl/s/AKfycby5El-LDjt9FJdh4cDT4AhVooXrjE9rZN2FYO9qHoBs0dLoiEB2xpQ1ptQpCgl2ZwAZtA/exec">← Portal CMDV</a>
+
+  <div class="modos" role="tablist">
+    <button id="mFunc" role="tab" onclick="cambiarModo('func')">👔 Ingreso funcionarios<small>Mañana</small></button>
+    <button id="mEst" role="tab" onclick="cambiarModo('est')">🍽️ Almuerzo estudiantes<small>Básica 13:20–14:10 · Media 13:40–14:30</small></button>
+  </div>
+
+  <div class="camara">
+    <div id="lector"></div>
+    <div id="lectorFoto" class="oculto"></div>
+    <div class="apagada" id="apagada"><b>📷</b>Toque <strong>Iniciar cámara</strong> y apunte al QR de la credencial.</div>
+  </div>
+  <div class="acciones">
+    <button class="btn prim" id="bCamara" onclick="alternarCamara()" disabled>Cargando…</button>
+    <label class="btn" title="Si la cámara en vivo no funciona, tome una foto del QR">🖼️ Desde foto
+      <input type="file" accept="image/*" capture="environment" onchange="desdeFoto(this)">
+    </label>
+    <button class="btn" onclick="sonido=!sonido;this.textContent=sonido?'🔊':'🔇'" title="Sonido">🔊</button>
+  </div>
+
+  <div class="resultado info" id="resultado">
+    <div class="mov">Listo</div>
+    <div class="nom" id="rNom">Esperando escaneo…</div>
+    <div class="det" id="rDet">Cargando listas…</div>
+  </div>
+
+  <div class="manual">
+    <input type="search" id="buscar" placeholder="¿QR dañado u olvidado? Busque por nombre…" autocomplete="off" oninput="sugerir()" aria-label="Buscar por nombre">
+    <div class="sugerencias oculto" id="sugerencias"></div>
+  </div>
+
+  <div id="panelEst">
+    <div class="kpis">
+      <div class="kpi naranja"><div class="n" id="kSal">–</div><div class="t">Salieron hoy</div></div>
+      <div class="kpi azul"><div class="n" id="kReg">–</div><div class="t">Regresaron</div></div>
+      <div class="kpi" id="kAfuB"><div class="n" id="kAfu">–</div><div class="t">Afuera ahora</div></div>
+    </div>
+    <div class="panel">
+      <h3>Afuera ahora <small id="hEst"></small></h3>
+      <div id="listaAfuera"><div class="vacio">Cargando…</div></div>
+    </div>
+  </div>
+
+  <div id="panelFunc" class="oculto">
+    <div class="kpis" style="grid-template-columns:1fr 1fr;">
+      <div class="kpi verde"><div class="n" id="kIng">–</div><div class="t">Funcionarios con ingreso hoy</div></div>
+      <div class="kpi"><div class="n" id="kSes">0</div><div class="t">Escaneados en este equipo</div></div>
+    </div>
+  </div>
+
+  <div class="panel">
+    <h3>Últimos escaneos en este equipo</h3>
+    <div id="historial"><div class="vacio">Aún no hay escaneos.</div></div>
+  </div>
+  <p class="nota">Las apps AppSheet siguen funcionando: todo queda en las mismas planillas. Un segundo escaneo del mismo QR antes de 2 minutos no se registra.</p>
+  </div>
+</main>
+
+<script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+<script>
+  const esc = v => String(v == null ? "" : v).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+  const sinTildes = s => String(s).normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
+  const $ = id => document.getElementById(id);
+
+  let D = null;                 // listas del servidor
+  let modo = new Date().getHours() < 12 ? "func" : "est";
+  let qr = null, encendida = false, sonido = true, audio = null;
+  let ultimoTexto = "", ultimoMs = 0, turno = 0, sesion = 0;
+  const historial = [];
+
+  /* ---------- conexión con la API (pase temporal del Portal CMDV) ---------- */
+  const API = "https://script.google.com/macros/s/AKfycbzw2C9tSBluHQbBnCiPYu5cj_oQTPzl77pyWL58IimlC6tXmufOedR4oc_nfUlK8ZBq/exec";
+  let TOKEN = "";
+  (function leerPase() {
+    const m = location.hash.match(/t=([a-f0-9]{32})/);
+    try {
+      if (m) { TOKEN = m[1]; localStorage.setItem("cmdv_escaner_t", TOKEN); }
+      else TOKEN = localStorage.getItem("cmdv_escaner_t") || "";
+    } catch (e) { if (m) TOKEN = m[1]; }
+    if (m) history.replaceState(null, "", location.pathname);   // el pase no queda en la barra de direcciones
+  })();
+
+  function sinPase(msg) {
+    try { localStorage.removeItem("cmdv_escaner_t"); } catch (e) {}
+    if (qr && encendida) qr.stop().catch(() => {});
+    if (msg) $("sinPaseTxt").textContent = msg;
+    $("app").classList.add("oculto"); $("sinPase").classList.remove("oculto");
+  }
+
+  function gs() {
+    let ok = () => {}, err = () => {};
+    const o = { withSuccessHandler(f) { ok = f; return o; }, withFailureHandler(f) { err = f; return o; } };
+    o.escanerInicio = () => llamar({ accion: "inicio" }, ok, err);
+    o.escanerEstado = () => llamar({ accion: "estado" }, ok, err);
+    o.escanerRegistrar = (modo, codigo, forzar) => llamar({ accion: "registrar", modo, codigo, forzar }, ok, err);
+    o.escanerDeshacer = id => llamar({ accion: "deshacer", id }, ok, err);
+    return o;
+  }
+
+  function llamar(cuerpo, ok, err) {
+    cuerpo.t = TOKEN;
+    fetch(API, { method: "POST", body: JSON.stringify(cuerpo), headers: { "Content-Type": "text/plain;charset=utf-8" } })
+      .then(r => r.json())
+      .then(j => { if (j.ok) ok(j.data); else { if (j.pase) sinPase(j.error); err(new Error(j.error)); } })
+      .catch(() => err(new Error("Sin conexión con el servidor. Revise el internet y reintente.")));
+  }
+
+  /* ---------- inicio ---------- */
+  cambiarModo(modo, true);
+  if (!TOKEN) sinPase();
+  else gs().withSuccessHandler(r => {
+    D = r;
+    $("quien").textContent = r.usuario || "";
+    $("bCamara").disabled = false; $("bCamara").textContent = "Iniciar cámara";
+    mostrar({ tono: "info", mov: "Listo", titulo: "Esperando escaneo…", detalle: Object.keys(r.est).length + " estudiantes y " + Object.keys(r.func).length + " funcionarios cargados." });
+    pintarEstado(r.estado, r.ingresos);
+  }).withFailureHandler(e => mostrar({ tono: "error", mov: "Error", titulo: "No se pudieron cargar las listas", detalle: e.message || e })).escanerInicio();
+
+  setInterval(() => {
+    if (document.hidden || !D) return;
+    gs().withSuccessHandler(r => pintarEstado(r.estado, r.ingresos)).escanerEstado();
+  }, 60000);
+
+  function cambiarModo(m, inicial) {
+    modo = m;
+    $("mFunc").classList.toggle("activo", m === "func");
+    $("mEst").classList.toggle("activo", m === "est");
+    $("panelEst").classList.toggle("oculto", m !== "est");
+    $("panelFunc").classList.toggle("oculto", m !== "func");
+    $("buscar").placeholder = m === "est" ? "¿QR dañado u olvidado? Busque al estudiante por nombre…" : "¿QR dañado u olvidado? Busque al funcionario por nombre…";
+    if (!inicial) mostrar({ tono: "info", mov: m === "est" ? "Almuerzo estudiantes" : "Ingreso funcionarios", titulo: "Esperando escaneo…", detalle: "" });
+  }
+
+  /* ---------- cámara ---------- */
+  async function alternarCamara() {
+    prepararAudio();
+    if (encendida) { await qr.stop().catch(() => {}); encendida = false; $("apagada").classList.remove("oculto"); $("bCamara").textContent = "Iniciar cámara"; return; }
+    if (typeof Html5Qrcode === "undefined") return mostrar({ tono: "error", mov: "Error", titulo: "No cargó el lector de QR", detalle: "Revise la conexión y recargue la página." });
+    qr = qr || new Html5Qrcode("lector", { formatsToSupport: [Html5QrcodeSupportedFormats.QR_CODE], experimentalFeatures: { useBarCodeDetectorIfSupported: true }, verbose: false });
+    $("bCamara").disabled = true;
+    try {
+      await qr.start({ facingMode: "environment" },
+        { fps: 12, qrbox: (w, h) => { const s = Math.floor(Math.min(w, h) * 0.72); return { width: s, height: s }; } },
+        leido, () => {});
+      encendida = true; $("apagada").classList.add("oculto"); $("bCamara").textContent = "Detener cámara";
+    } catch (e) {
+      mostrar({ tono: "error", mov: "Cámara", titulo: "No se pudo abrir la cámara",
+        detalle: "Permita el acceso a la cámara en el navegador. Si no aparece el permiso, use «Desde foto» o la búsqueda por nombre. (" + (e && e.name || e) + ")" });
+    }
+    $("bCamara").disabled = false;
+  }
+
+  function desdeFoto(input) {
+    prepararAudio();
+    const f = input.files && input.files[0];
+    input.value = "";
+    if (!f) return;
+    if (typeof Html5Qrcode === "undefined") return;
+    new Html5Qrcode("lectorFoto", false).scanFile(f, false).then(t => procesar(t)).catch(() =>
+      mostrar({ tono: "error", mov: "Foto", titulo: "No se encontró un QR en la foto", detalle: "Acerque más la credencial y vuelva a intentar." }));
+  }
+
+  function leido(texto) {
+    const ahora = Date.now();
+    if (texto === ultimoTexto && ahora - ultimoMs < 4000) return;   // la cámara lee el mismo QR muchas veces por segundo
+    ultimoTexto = texto; ultimoMs = ahora;
+    procesar(texto);
+  }
+
+  /* ---------- registrar ---------- */
+  function procesar(codigo, forzar) {
+    codigo = String(codigo || "").trim();
+    if (!codigo || !D) return;
+    const lista = modo === "est" ? D.est : D.func;
+    const p = lista[codigo];
+    const mio = ++turno;
+    mostrar({ tono: "info espera", mov: "Registrando…", titulo: p ? p[0] : "Verificando código…", detalle: p && modo === "est" ? p[1] : "" });
+    gs()
+      .withSuccessHandler(r => {
+        agregarHistorial(r);
+        if (r.estado) pintarEstado(r.estado);
+        if (r.ok && !r.repetido && modo === "func") { $("kIng").textContent = (Number($("kIng").textContent) || 0) + 1; }
+        if (mio === turno) mostrar(r);
+        pitido(r.ok ? (r.tono === "alerta" ? "alerta" : r.repetido ? "info" : "ok") : "error");
+      })
+      .withFailureHandler(e => { if (mio === turno) mostrar({ tono: "error", mov: "Error", titulo: p ? p[0] : "No se registró", detalle: e.message || e }); pitido("error"); })
+      .escanerRegistrar(modo, codigo, forzar || "");
+  }
+
+  function mostrar(r) {
+    const el = $("resultado");
+    const tonoMov = r.ok && !r.repetido ? (r.mov === "SALIDA" ? "salida" : r.mov === "REGRESO" ? "regreso" : "ok") : (r.tono || "info");
+    el.className = "resultado " + tonoMov + (r.tono === "alerta" ? " alerta" : "");
+    const mov = r.ok ? (r.repetido ? "Ya registrado" : { SALIDA: "↗ Salida", REGRESO: "↙ Regreso", INGRESO: "✓ Ingreso" }[r.mov] || r.mov) : (r.mov || "No registrado");
+    let html = `<div class="mov">${esc(mov)}</div><div class="nom">${esc(r.titulo)}</div>
+      <div class="det">${esc([r.curso, r.detalle].filter(Boolean).join(" · "))}</div>`;
+    if (r.avisos && r.avisos.length) html += `<div class="avs">${r.avisos.map(a => `<span>⚠ ${esc(a)}</span>`).join("")}</div>`;
+    const b = [];
+    if (r.ok && r.id) b.push(`<button onclick="deshacer('${esc(r.id)}')">↶ Deshacer</button>`);
+    if (r.ok && r.modo === "est" && r.id) {
+      const otro = r.mov === "SALIDA" ? "REGRESO" : "SALIDA";
+      b.push(`<button onclick="corregir('${esc(r.id)}','${esc(codigoDe(r))}','${otro}')">Era ${otro === "SALIDA" ? "salida" : "regreso"}</button>`);
+    }
+    if (r.ok && r.repetido && modo === "est" && codigoDe(r)) {
+      const otro = r.mov === "SALIDA" ? "REGRESO" : "SALIDA";
+      b.push(`<button onclick="procesar('${esc(codigoDe(r))}','${otro}')">Registrar ${otro === "SALIDA" ? "salida" : "regreso"} igual</button>`);
+    }
+    if (b.length) html += `<div class="botones">${b.join("")}</div>`;
+    el.innerHTML = html;
+  }
+
+  function codigoDe(r) { return r.codigo || ""; }
+
+  function deshacer(id) {
+    mostrar({ tono: "info espera", mov: "Deshaciendo…", titulo: "Eliminando el registro…", detalle: "" });
+    gs().withSuccessHandler(r => {
+      const h = historial.find(x => x.id === id); if (h) { h.deshecho = true; pintarHistorial(); }
+      if (r.estado) pintarEstado(r.estado);
+      mostrar({ tono: "info", mov: "Deshecho", titulo: "Registro eliminado", detalle: "Puede volver a escanear." });
+    }).withFailureHandler(e => mostrar({ tono: "error", mov: "Error", titulo: "No se pudo deshacer", detalle: e.message || e })).escanerDeshacer(id);
+  }
+
+  // Corregir = borrar el registro y volver a registrar con el otro movimiento
+  function corregir(id, codigo, mov) {
+    gs().withSuccessHandler(() => {
+      const h = historial.find(x => x.id === id); if (h) h.deshecho = true;
+      procesar(codigo, mov);
+    }).withFailureHandler(e => mostrar({ tono: "error", mov: "Error", titulo: "No se pudo corregir", detalle: e.message || e })).escanerDeshacer(id);
+  }
+
+  /* ---------- búsqueda manual ---------- */
+  function sugerir() {
+    const q = sinTildes($("buscar").value.trim());
+    const caja = $("sugerencias");
+    if (!D || q.length < 3) { caja.classList.add("oculto"); return; }
+    const lista = modo === "est" ? D.est : D.func;
+    const partes = q.split(/\s+/);
+    const r = Object.keys(lista).filter(k => { const t = sinTildes(lista[k][0] + " " + lista[k][1]); return partes.every(p => t.indexOf(p) !== -1); }).slice(0, 12);
+    caja.innerHTML = r.length ? r.map(k => `<button onclick="elegir('${esc(k)}')">${esc(lista[k][0])}<small>${esc(lista[k][1])}</small></button>`).join("")
+      : `<div class="vacio" style="padding:10px 12px;">Sin resultados.</div>`;
+    caja.classList.remove("oculto");
+  }
+  function elegir(k) { prepararAudio(); $("buscar").value = ""; $("sugerencias").classList.add("oculto"); procesar(k); }
+  document.addEventListener("click", e => { if (!e.target.closest(".manual")) $("sugerencias").classList.add("oculto"); });
+
+  /* ---------- paneles ---------- */
+  function pintarEstado(e, ingresos) {
+    if (ingresos != null) $("kIng").textContent = ingresos;
+    if (!e) return;
+    $("kSal").textContent = e.salieron; $("kReg").textContent = e.regresaron; $("kAfu").textContent = e.afuera.length;
+    const atr = e.afuera.filter(x => x.atrasado).length;
+    $("kAfuB").className = "kpi " + (atr ? "rojo" : e.afuera.length ? "naranja" : "verde");
+    $("hEst").textContent = (atr ? atr + " pasados del límite · " : "") + "act. " + e.hora;
+    $("listaAfuera").innerHTML = e.afuera.length ? e.afuera.map(x => `<div class="fila${x.atrasado ? " atrasado" : ""}">
+        <div>${esc(x.nombre)}<div class="q">${esc(x.curso)} · límite ${esc(x.limite)}</div></div>
+        <div class="h">${x.atrasado ? "⏰ " : ""}salió ${esc(x.salida)}</div></div>`).join("")
+      : `<div class="vacio">${e.salieron ? "Todos regresaron. ✓" : "Nadie ha salido hoy."}</div>`;
+  }
+
+  function agregarHistorial(r) {
+    const h = new Date();
+    historial.unshift({ id: r.id, hora: ("0" + h.getHours()).slice(-2) + ":" + ("0" + h.getMinutes()).slice(-2), nombre: r.titulo, curso: r.curso || "",
+      mov: r.ok ? (r.repetido ? "REPETIDO" : r.mov) : "ERROR", avisos: (r.avisos || []).join(" · ") || (r.ok ? "" : r.detalle) });
+    if (historial.length > 25) historial.pop();
+    if (r.ok && !r.repetido) $("kSes").textContent = ++sesion;
+    pintarHistorial();
+  }
+
+  function pintarHistorial() {
+    $("historial").innerHTML = historial.length ? historial.map(x => `<div class="fila" style="${x.deshecho ? "opacity:.45;text-decoration:line-through" : ""}">
+      <div><span class="tag ${esc(x.mov)}">${esc(x.mov === "REPETIDO" ? "YA ESTABA" : x.mov)}</span>${esc(x.nombre)}
+        <div class="q">${esc([x.curso, x.avisos].filter(Boolean).join(" · "))}</div></div><div class="h">${esc(x.hora)}</div></div>`).join("")
+      : `<div class="vacio">Aún no hay escaneos.</div>`;
+  }
+
+  /* ---------- sonido ---------- */
+  function prepararAudio() { try { audio = audio || new (window.AudioContext || window.webkitAudioContext)(); if (audio.state === "suspended") audio.resume(); } catch (e) {} }
+  function pitido(tipo) {
+    if (navigator.vibrate) navigator.vibrate(tipo === "error" ? [120, 80, 120] : tipo === "alerta" ? [80, 60, 80] : 60);
+    if (!sonido || !audio) return;
+    const tonos = { ok: [[880, .12]], info: [[660, .1]], alerta: [[880, .1], [660, .14]], error: [[220, .18], [180, .22]] }[tipo] || [[660, .1]];
+    let t = audio.currentTime;
+    tonos.forEach(([f, d]) => {
+      const o = audio.createOscillator(), g = audio.createGain();
+      o.frequency.value = f; o.type = "sine"; g.gain.setValueAtTime(.25, t); g.gain.exponentialRampToValueAtTime(.001, t + d);
+      o.connect(g); g.connect(audio.destination); o.start(t); o.stop(t + d); t += d + .03;
+    });
+  }
+</script>
+</body>
+</html>
