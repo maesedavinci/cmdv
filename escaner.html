@@ -71,6 +71,21 @@
     .cab img { width: 42px; height: 42px; object-fit: contain; }
     .cab h1 { margin: 0; font-size: 18px; } .cab p { margin: 2px 0 0; font-size: 12.5px; opacity: .85; }
     .cab span { margin-left: auto; font-size: 12px; opacity: .85; text-align: right; }
+    /* aviso emergente sobre la cámara */
+    .pop { position: fixed; left: 50%; top: 42%; transform: translate(-50%, -50%); width: min(92vw, 520px); z-index: 1000; margin: 0 !important;
+      border-width: 3px !important; border-radius: 18px; padding: 22px 20px 16px; text-align: center; box-shadow: 0 18px 50px rgba(0,0,0,.38); animation: entra .16s ease-out; cursor: pointer; }
+    .pop .ico { font-size: 46px; line-height: 1; margin-bottom: 6px; }
+    .pop .mov { font-size: 16px; }
+    .pop .nom { font-size: 26px; }
+    .pop .det { font-size: 16px; }
+    .pop .avs { justify-content: center; } .pop .avs span { font-size: 14px; }
+    .pop .botones { justify-content: center; } .pop .botones button { font-size: 15px; padding: 10px 14px; }
+    .pop .cerrar { font-size: 12px; color: var(--texto-2); margin-top: 10px; }
+    .pop.info { background: #fff; }
+    .giro { width: 46px; height: 46px; border: 5px solid rgba(27,107,66,.15); border-top-color: var(--verde); border-radius: 50%; animation: gira .75s linear infinite; margin: 0 auto 10px; }
+    @keyframes gira { to { transform: rotate(360deg); } }
+    @keyframes entra { from { opacity: 0; transform: translate(-50%, -46%) scale(.96); } to { opacity: 1; transform: translate(-50%, -50%) scale(1); } }
+    @media (prefers-reduced-motion: reduce) { .pop { animation: none; } .giro { animation-duration: 2s; } }
     @media (max-width: 480px) { .resultado .nom { font-size: 19px; } .kpi .n { font-size: 22px; } }
   </style>
 </head>
@@ -104,6 +119,7 @@
     <button class="btn" onclick="sonido=!sonido;this.textContent=sonido?'🔊':'🔇'" title="Sonido">🔊</button>
   </div>
 
+  <div class="resultado info pop oculto" id="pop" role="alert" aria-live="assertive"></div>
   <div class="resultado info" id="resultado">
     <div class="mov">Listo</div>
     <div class="nom" id="rNom">Esperando escaneo…</div>
@@ -198,7 +214,7 @@
     D = r;
     $("quien").textContent = r.usuario || "";
     $("bCamara").disabled = false; $("bCamara").textContent = "Iniciar cámara";
-    mostrar({ tono: "info", mov: "Listo", titulo: "Esperando escaneo…", detalle: Object.keys(r.est).length + " estudiantes y " + Object.keys(r.func).length + " funcionarios cargados." });
+    mostrar({ tono: "info", mov: "Listo", titulo: "Esperando escaneo…", detalle: Object.keys(r.est).length + " estudiantes y " + Object.keys(r.func).length + " funcionarios cargados." }, false);
     pintarEstado(r.estado, r.ingresos);
   }).withFailureHandler(e => mostrar({ tono: "error", mov: "Error", titulo: "No se pudieron cargar las listas", detalle: e.message || e })).escanerInicio();
 
@@ -214,7 +230,7 @@
     $("panelEst").classList.toggle("oculto", m !== "est");
     $("panelFunc").classList.toggle("oculto", m !== "func");
     $("buscar").placeholder = m === "est" ? "¿QR dañado u olvidado? Busque al estudiante por nombre…" : "¿QR dañado u olvidado? Busque al funcionario por nombre…";
-    if (!inicial) mostrar({ tono: "info", mov: m === "est" ? "Almuerzo estudiantes" : "Ingreso funcionarios", titulo: "Esperando escaneo…", detalle: "" });
+    if (!inicial) mostrar({ tono: "info", mov: m === "est" ? "Almuerzo estudiantes" : "Ingreso funcionarios", titulo: "Esperando escaneo…", detalle: "" }, false);
   }
 
   /* ---------- cámara ---------- */
@@ -273,7 +289,8 @@
       .escanerRegistrar(modo, codigo, forzar || "");
   }
 
-  function mostrar(r) {
+  let popTimer = null;
+  function mostrar(r, conPop) {
     const el = $("resultado");
     const tonoMov = r.ok && !r.repetido ? (r.mov === "SALIDA" ? "salida" : r.mov === "REGRESO" ? "regreso" : "ok") : (r.tono || "info");
     el.className = "resultado " + tonoMov + (r.tono === "alerta" ? " alerta" : "");
@@ -293,7 +310,23 @@
     }
     if (b.length) html += `<div class="botones">${b.join("")}</div>`;
     el.innerHTML = html;
+    if (conPop !== false) verPop(r, tonoMov, html);
   }
+
+  // Aviso emergente encima de la cámara: se cierra solo o al tocarlo
+  function verPop(r, tonoMov, html) {
+    const pop = $("pop");
+    const espera = /espera/.test(r.tono || "");
+    const ico = espera ? '<div class="giro"></div>'
+      : `<div class="ico">${r.ok ? (r.repetido ? "ℹ️" : r.tono === "alerta" ? "⚠️" : r.mov === "SALIDA" ? "↗️" : r.mov === "REGRESO" ? "↙️" : "✅") : r.tono === "error" ? "❌" : "ℹ️"}</div>`;
+    pop.className = "resultado pop " + tonoMov + (r.tono === "alerta" ? " alerta" : "");
+    pop.innerHTML = ico + html + (espera ? "" : '<div class="cerrar">Toque para cerrar</div>');
+    clearTimeout(popTimer);
+    if (!espera) popTimer = setTimeout(cerrarPop, r.ok === false || r.tono === "error" ? 6000 : r.tono === "alerta" ? 4500 : 2500);
+  }
+  function cerrarPop() { clearTimeout(popTimer); $("pop").classList.add("oculto"); }
+  // Tocar el aviso lo cierra; los botones (Deshacer, Era salida…) muestran su propio aviso.
+  $("pop").addEventListener("click", e => { if (!e.target.closest("button") && !/espera/.test($("pop").className)) cerrarPop(); });
 
   function codigoDe(r) { return r.codigo || ""; }
 
