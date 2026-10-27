@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex">
+  <title>Firma de acta · Colegio Maese Da Vinci</title>
+  <link rel="icon" href="logo.png">
+  <style>
+    :root { --principal: #1b6b42; --texto: #1d2a22; --suave: #5d6b63; }
+    * { box-sizing: border-box; }
+    body { margin: 0; font-family: Arial, Helvetica, sans-serif; color: var(--texto); background: #f3f6f4; }
+    header { background: var(--principal); color: #fff; padding: 14px 16px; }
+    header strong { font-size: 17px; }
+    main { max-width: 760px; margin: 0 auto; padding: 16px; }
+    .tarjeta { background: #fff; border: 1px solid #d8e1dc; border-radius: 12px; padding: 16px; margin-bottom: 14px; }
+    .acta { overflow-x: auto; }
+    .pad { border: 2px dashed #9fb3a7; border-radius: 12px; background: #fff; }
+    .pad canvas { width: 100%; height: 190px; display: block; touch-action: none; }
+    .pie { display: flex; justify-content: space-between; align-items: center; padding: 8px 10px; border-top: 1px solid #e3e9e5; font-size: 14px; }
+    button { border: 0; border-radius: 10px; padding: 14px 18px; font-weight: bold; font-size: 16px; cursor: pointer; }
+    .principal { background: var(--principal); color: #fff; width: 100%; margin-top: 12px; }
+    .secundario { background: #e7ede9; color: var(--texto); padding: 8px 12px; font-size: 14px; }
+    button:disabled { opacity: .6; cursor: wait; }
+    .mensaje { padding: 12px 14px; border-radius: 10px; margin-bottom: 14px; font-size: 15px; }
+    .error { background: #fdeceb; color: #8a2b2b; }
+    .exito { background: #e2f0e7; color: #1b6b42; }
+    .suave { color: var(--suave); font-size: 14px; }
+    label { display: flex; gap: 10px; align-items: flex-start; font-size: 15px; margin-top: 12px; }
+    label input { width: 22px; height: 22px; flex: 0 0 22px; }
+  </style>
+</head>
+<body>
+  <!--
+    Página de firma FUERA de Google. Llama a la web app pública de Apps Script
+    sin cookies (credentials: "omit"), así no aparece el error de Google
+    "No se puede abrir el archivo en este momento" en celulares con varias
+    cuentas iniciadas. Enlace: <esta página>?t=<token>
+  -->
+  <header><strong>Colegio Maese Da Vinci</strong><br><span style="font-size:13px;">Firma de acta</span></header>
+  <div id="bandaPrueba" style="display:none;background:#fff3c4;color:#6b4e00;padding:8px 16px;text-align:center;font-weight:bold;font-size:14px;">🧪 MODO PRUEBA</div>
+  <main>
+    <div id="mensaje"></div>
+    <div id="contenido" class="tarjeta">Cargando el acta...</div>
+  </main>
+
+  <script>
+    // Web app PÚBLICA (acceso: cualquier persona). Cambiar al pasar a producción.
+    const API = "https://script.google.com/macros/s/AKfycbw79QiWMwRUrK_dFtlvKy6NxMqfgWxYnvY_zmiMsq1qirTA8VEC_RiPU7oNpn0B7bg/exec";
+    const TOKEN = new URLSearchParams(location.search).get("t") || "";
+    let dibujado = false;
+
+    function q(id) { return document.getElementById(id); }
+    function esc(v) {
+      return String(v == null ? "" : v).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+    }
+    function aviso(texto, tipo) {
+      q("mensaje").innerHTML = texto ? `<div class="mensaje ${tipo}">${esc(texto)}</div>` : "";
+      if (texto) window.scrollTo({ top: 0, behavior: "smooth" });
+    }
+
+    async function llamar(opciones) {
+      const url = opciones.post ? API : API + "?accion=firma_api&t=" + encodeURIComponent(TOKEN);
+      const r = await fetch(url, opciones.post ? {
+        method: "POST",
+        credentials: "omit",
+        headers: { "Content-Type": "text/plain;charset=utf-8" },
+        body: JSON.stringify(opciones.post)
+      } : { credentials: "omit" });
+      if (!r.ok) throw new Error("El servidor no respondió (" + r.status + "). Intente nuevamente.");
+      return r.json();
+    }
+
+    function noAbre(texto) {
+      q("contenido").innerHTML = `<strong>No se pudo abrir el acta.</strong><p class="suave">${esc(texto)}</p>`;
+    }
+
+    if (!TOKEN) {
+      noAbre("El enlace está incompleto. Ábralo directamente desde el correo.");
+    } else {
+      llamar({}).then(r => {
+        if (r && r.modoPrueba) q("bandaPrueba").style.display = "";
+        if (!r || !r.ok) return noAbre(r ? r.mensaje : "");
+        if (r.firmada) {
+          q("contenido").innerHTML = `<strong>Esta acta ya fue firmada.</strong><p class="suave">Gracias. No necesita hacer nada más.</p>`;
+          return;
+        }
+        if (r.vencido) {
+          q("contenido").innerHTML = `<strong>El enlace venció (${esc(r.vence)}).</strong>
+            <p class="suave">Pida al colegio que le reenvíe el enlace o que le entregue el acta impresa para firmarla.</p>`;
+          return;
+        }
+        q("contenido").innerHTML = `
+          <p style="margin-top:0;"><strong>${esc(r.titulo)}</strong>${r.quien ? "<br><span class='suave'>" + esc(r.quien) + "</span>" : ""}</p>
+          <p class="suave">Revise el acta y firme al final como <strong>${esc(r.rotulo)}</strong>${r.nombre ? " (" + esc(r.nombre) + ")" : ""}. El enlace vence el ${esc(r.vence)}.</p>
+          <div class="acta tarjeta" style="padding:10px;">${r.html}</div>
+          <div class="pad"><canvas id="pad"></canvas>
+            <div class="pie"><span>Firme aquí con el dedo o el mouse</span><button type="button" class="secundario" onclick="limpiar()">Limpiar</button></div>
+          </div>
+          <label><input type="checkbox" id="acepto"> Declaro que leí el acta y la firmo en conformidad.</label>
+          <button type="button" class="principal" id="btnFirmar" onclick="firmar()">Firmar acta</button>`;
+        prepararPad();
+      }).catch(e => noAbre(e.message || "Revise su conexión a internet e intente nuevamente."));
+    }
+
+    function prepararPad() {
+      const c = q("pad");
+      const escala = window.devicePixelRatio || 1;
+      c.width = c.offsetWidth * escala;
+      c.height = c.offsetHeight * escala;
+      const ctx = c.getContext("2d");
+      ctx.scale(escala, escala);
+      ctx.lineWidth = 2.4; ctx.lineCap = "round"; ctx.lineJoin = "round"; ctx.strokeStyle = "#1d2a22";
+      let activo = false;
+      const p = ev => { const r = c.getBoundingClientRect(); return { x: ev.clientX - r.left, y: ev.clientY - r.top }; };
+      c.addEventListener("pointerdown", ev => { activo = true; c.setPointerCapture(ev.pointerId); const a = p(ev); ctx.beginPath(); ctx.moveTo(a.x, a.y); });
+      c.addEventListener("pointermove", ev => { if (!activo) return; const a = p(ev); ctx.lineTo(a.x, a.y); ctx.stroke(); dibujado = true; });
+      ["pointerup", "pointerleave", "pointercancel"].forEach(t => c.addEventListener(t, () => { activo = false; }));
+    }
+
+    function limpiar() {
+      const c = q("pad");
+      c.getContext("2d").clearRect(0, 0, c.width, c.height);
+      dibujado = false;
+    }
+
+    function firmaReducida(canvas) {
+      const ancho = Math.min(400, canvas.width);
+      const alto = Math.round(canvas.height * ancho / canvas.width);
+      const c = document.createElement("canvas");
+      c.width = ancho; c.height = alto;
+      c.getContext("2d").drawImage(canvas, 0, 0, ancho, alto);
+      let url = c.toDataURL("image/png");
+      if (url.length > 45000) {
+        const ctx = c.getContext("2d");
+        ctx.globalCompositeOperation = "destination-over";
+        ctx.fillStyle = "#fff"; ctx.fillRect(0, 0, ancho, alto);
+        url = c.toDataURL("image/jpeg", 0.6);
+      }
+      return url;
+    }
+
+    function firmar() {
+      if (!dibujado) return aviso("Dibuje su firma en el recuadro.", "error");
+      if (!q("acepto").checked) return aviso("Marque la casilla de conformidad.", "error");
+      q("btnFirmar").disabled = true;
+      llamar({ post: { accion: "firmar", t: TOKEN, imagen: firmaReducida(q("pad")) } })
+        .then(r => {
+          if (!r || !r.ok) { q("btnFirmar").disabled = false; return aviso(r ? r.mensaje : "No se pudo firmar.", "error"); }
+          aviso("", "");
+          q("contenido").innerHTML = `<strong>¡Listo! El acta quedó firmada.</strong>
+            <p class="suave">El colegio recibirá el acta con su firma. Ya puede cerrar esta página.</p>`;
+        })
+        .catch(e => { q("btnFirmar").disabled = false; aviso(e.message || "No se pudo firmar. Intente nuevamente.", "error"); });
+    }
+  </script>
+</body>
+</html>

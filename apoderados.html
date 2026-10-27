@@ -1,0 +1,211 @@
+<!DOCTYPE html><html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Portal del Apoderado · Colegio Maese da Vinci</title><link rel="icon" href="logo.png"><style>body{margin:0;padding:24px 16px;background:#fff}</style></head><body>
+<div id="pa-cmdv">
+<style>
+#pa-cmdv{--v:#1b6b42;--v2:#01512f;--vc:#e9f3ed;--t:#1d2a22;--s:#5d6b63;--b:#dde6e0;--f:#f4f7f5;font-family:"Segoe UI",Arial,Helvetica,sans-serif;color:var(--t);line-height:1.5;max-width:1140px;margin:0 auto 30px}
+#pa-cmdv *{box-sizing:border-box}
+#pa-cmdv a{text-decoration:none}
+#pa-cmdv svg{width:24px;height:24px;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;flex-shrink:0}
+#pa-cmdv .hero{position:relative;border-radius:18px;overflow:hidden;color:#fff;padding:56px 40px 44px;background:linear-gradient(120deg,rgba(1,61,36,.94) 0%,rgba(1,81,47,.86) 45%,rgba(27,107,66,.55) 100%)}
+#pa-cmdv .hero-marca{display:flex;align-items:center;gap:14px;margin-bottom:22px}
+#pa-cmdv .hero-marca img{width:64px;height:64px;object-fit:contain;background:#fff;border-radius:50%;padding:2px;box-shadow:0 6px 18px rgba(0,0,0,.25)}
+#pa-cmdv .hero-marca span{font-size:13px;letter-spacing:.12em;text-transform:uppercase;opacity:.9;line-height:1.3}
+#pa-cmdv .hero h1{margin:0 0 12px;font-size:40px;line-height:1.1;color:#fff;font-weight:800}
+#pa-cmdv .hero p{margin:0 0 26px;font-size:17px;max-width:620px;opacity:.95;color:#fff}
+#pa-cmdv .acciones{display:flex;flex-wrap:wrap;gap:10px}
+#pa-cmdv .btn{display:inline-flex;align-items:center;gap:8px;padding:13px 20px;border-radius:12px;font-weight:700;font-size:15px;transition:transform .15s,box-shadow .15s}
+#pa-cmdv .btn svg{width:20px;height:20px}
+#pa-cmdv .btn:hover{transform:translateY(-2px);box-shadow:0 8px 20px rgba(0,0,0,.2)}
+#pa-cmdv .btn-a{background:#fff;color:var(--v2)!important}
+#pa-cmdv .btn-b{background:rgba(255,255,255,.14);color:#fff!important;border:1px solid rgba(255,255,255,.5)}
+#pa-cmdv .sec{margin-top:40px}
+#pa-cmdv .sec-t{display:flex;align-items:baseline;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:16px}
+#pa-cmdv h2{margin:0;font-size:25px;color:var(--t);font-weight:800}
+#pa-cmdv .sec-t p{margin:0;color:var(--s);font-size:15px}
+#pa-cmdv .cards{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:18px}
+#pa-cmdv .card{background:#fff;border:1px solid var(--b);border-radius:16px;padding:24px;display:flex;flex-direction:column;gap:10px;box-shadow:0 2px 10px rgba(16,40,26,.05)}
+#pa-cmdv .card.main{border-top:4px solid var(--v)}
+#pa-cmdv .ic{width:48px;height:48px;border-radius:12px;background:var(--vc);color:var(--v);display:flex;align-items:center;justify-content:center}
+#pa-cmdv .card h3{margin:2px 0 0;font-size:19px;color:var(--t)}
+#pa-cmdv .card p{margin:0;color:var(--s);font-size:15px}
+#pa-cmdv .card ul{margin:0;padding:0;list-style:none;display:grid;gap:6px;font-size:14.5px;color:var(--s)}
+#pa-cmdv .card li{display:flex;gap:8px;align-items:flex-start}
+#pa-cmdv .card li svg{width:18px;height:18px;color:var(--v);margin-top:2px}
+#pa-cmdv .card .ir{margin-top:auto;display:flex;justify-content:center;align-items:center;gap:8px;background:var(--v);color:#fff!important;font-weight:700;padding:13px;border-radius:11px;transition:background .15s}
+#pa-cmdv .card .ir:hover{background:var(--v2)}
+#pa-cmdv .card .ir svg{width:18px;height:18px}
+#pa-cmdv .nota{margin-top:auto;display:flex;gap:10px;background:var(--vc);color:#14532d;border-radius:11px;padding:12px 14px;font-size:14px}
+#pa-cmdv .nota svg{width:20px;height:20px}
+#pa-cmdv .pasos{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:18px;counter-reset:p}
+#pa-cmdv .paso{background:var(--f);border-radius:16px;padding:22px;position:relative}
+#pa-cmdv .paso b{display:flex;align-items:center;justify-content:center;width:36px;height:36px;border-radius:50%;background:var(--v);color:#fff;font-size:16px;margin-bottom:10px}
+#pa-cmdv .paso h4{margin:0 0 6px;font-size:16.5px;color:var(--t)}
+#pa-cmdv .paso p{margin:0;font-size:14.5px;color:var(--s)}
+#pa-cmdv .links{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px}
+#pa-cmdv .lk{display:flex;gap:12px;align-items:flex-start;background:#fff;border:1px solid var(--b);border-radius:14px;padding:16px;color:var(--t)!important;transition:border-color .15s,transform .15s}
+#pa-cmdv a.lk:hover{border-color:var(--v);transform:translateY(-2px)}
+#pa-cmdv .lk .ic{width:40px;height:40px;border-radius:10px}
+#pa-cmdv .lk .ic svg{width:20px;height:20px}
+#pa-cmdv .lk strong{display:block;font-size:15px}
+#pa-cmdv .lk span{display:block;font-size:13.5px;color:var(--s);margin-top:2px}
+#pa-cmdv .faq{display:grid;gap:10px}
+#pa-cmdv details{background:#fff;border:1px solid var(--b);border-radius:12px;padding:0 18px}
+#pa-cmdv summary{cursor:pointer;list-style:none;padding:16px 0;font-weight:700;font-size:15.5px;display:flex;justify-content:space-between;gap:12px;color:var(--t)}
+#pa-cmdv summary::-webkit-details-marker{display:none}
+#pa-cmdv summary::after{content:"+";font-size:22px;line-height:1;color:var(--v)}
+#pa-cmdv details[open] summary::after{content:"–"}
+#pa-cmdv details p{margin:0 0 16px;color:var(--s);font-size:14.5px}
+#pa-cmdv .banda{display:grid;grid-template-columns:1.4fr 1fr;gap:28px;align-items:center;background:linear-gradient(135deg,#01512f,#013d24);color:#e3f4ea;border-radius:18px;padding:32px 36px}
+#pa-cmdv .banda h2{color:#fff;margin-bottom:10px}
+#pa-cmdv .banda p{margin:0;font-size:15px;color:#e3f4ea}
+#pa-cmdv .banda ul{margin:0;padding:0;list-style:none;display:grid;gap:10px}
+#pa-cmdv .banda li{display:flex;gap:10px;font-size:14.5px}
+#pa-cmdv .banda li svg{width:20px;height:20px;color:#9fd3b4}
+#pa-cmdv .contacto{margin-top:20px;display:flex;flex-wrap:wrap;justify-content:space-between;gap:10px;font-size:14px;color:var(--s);border-top:1px solid var(--b);padding-top:16px}
+#pa-cmdv .contacto a{color:var(--v)!important;font-weight:700}
+#pa-cmdv .tiendas{display:flex;flex-wrap:wrap;gap:10px}
+#pa-cmdv .tienda{flex:1 1 150px;display:flex;align-items:center;justify-content:center;gap:8px;background:#16201b;color:#fff!important;padding:12px 14px;border-radius:11px;font-weight:700;font-size:14.5px;transition:background .15s}
+#pa-cmdv .tienda:hover{background:#000}
+#pa-cmdv .tienda svg{width:20px;height:20px}
+#pa-cmdv .lirmi .nota{margin-top:4px}
+@media(max-width:900px){#pa-cmdv .links{grid-template-columns:repeat(2,minmax(0,1fr))}#pa-cmdv .banda{grid-template-columns:1fr}}
+@media(max-width:680px){#pa-cmdv .hero{padding:36px 22px 30px;border-radius:14px}#pa-cmdv .hero h1{font-size:30px}#pa-cmdv .hero p{font-size:15.5px}#pa-cmdv .cards,#pa-cmdv .pasos,#pa-cmdv .links{grid-template-columns:1fr}#pa-cmdv .btn{flex:1 1 100%;justify-content:center}#pa-cmdv .banda{padding:26px 22px}#pa-cmdv h2{font-size:22px}}
+</style>
+
+<section class="hero">
+  <div class="hero-marca">
+    <img src="logo.png" alt="Logo Colegio Maese da Vinci">
+    <span>Colegio Maese da Vinci<br>La Ligua</span>
+  </div>
+  <h1>Portal del Apoderado</h1>
+  <p>Todos los servicios en línea del colegio en un solo lugar: agende entrevistas, realice la matrícula y firme documentos desde su celular, sin trámites en papel.</p>
+  <div class="acciones">
+    <a class="btn btn-a" href="https://script.google.com/macros/s/AKfycbw79QiWMwRUrK_dFtlvKy6NxMqfgWxYnvY_zmiMsq1qirTA8VEC_RiPU7oNpn0B7bg/exec" target="_blank" rel="noopener"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>Agendar entrevista</a>
+    <a class="btn btn-b" href="https://script.google.com/macros/s/AKfycbwehJHPz85g_HdA1QA8re59dzXTUpnkv7mA61UcNxPZo72ud50F7XPeJPXL2oeiiKNW/exec" target="_blank" rel="noopener"><svg viewBox="0 0 24 24"><path d="M9 11l3 3 8-8"/><path d="M20 12v7a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h9"/></svg>Matrícula 2027</a>
+  </div>
+</section>
+
+<section class="sec">
+  <div class="sec-t"><h2>¿Qué necesita hacer?</h2><p>Elija un servicio. Se abre en una pestaña nueva.</p></div>
+  <div class="cards">
+
+    <div class="card main">
+      <div class="ic"><svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg></div>
+      <h3>Entrevistas con docentes</h3>
+      <p>Reúnase con el profesor jefe, un docente de asignatura o el equipo de apoyo (convivencia, PIE, UTP).</p>
+      <ul>
+        <li><svg viewBox="0 0 24 24"><path d="M20 6L9 17l-5-5"/></svg>Vea los horarios disponibles y elija el suyo.</li>
+        <li><svg viewBox="0 0 24 24"><path d="M20 6L9 17l-5-5"/></svg>La confirmación llega a su correo.</li>
+        <li><svg viewBox="0 0 24 24"><path d="M20 6L9 17l-5-5"/></svg>Desde el correo puede reprogramar o cancelar.</li>
+      </ul>
+      <a class="ir" href="https://script.google.com/macros/s/AKfycbw79QiWMwRUrK_dFtlvKy6NxMqfgWxYnvY_zmiMsq1qirTA8VEC_RiPU7oNpn0B7bg/exec" target="_blank" rel="noopener">Agendar entrevista<svg viewBox="0 0 24 24"><path d="M5 12h14M12 5l7 7-7 7"/></svg></a>
+    </div>
+
+    <div class="card main">
+      <div class="ic"><svg viewBox="0 0 24 24"><path d="M22 10L12 5 2 10l10 5 10-5z"/><path d="M6 12v5c3 2 9 2 12 0v-5"/></svg></div>
+      <h3>Matrícula 2027</h3>
+      <p>Complete o actualice la ficha de su pupilo antes de venir al colegio y ahorre tiempo el día de la matrícula.</p>
+      <ul>
+        <li><svg viewBox="0 0 24 24"><path d="M20 6L9 17l-5-5"/></svg>Datos del estudiante y del apoderado.</li>
+        <li><svg viewBox="0 0 24 24"><path d="M20 6L9 17l-5-5"/></svg>Carga de documentos (carnet y certificados).</li>
+        <li><svg viewBox="0 0 24 24"><path d="M20 6L9 17l-5-5"/></svg>Firma de anexos en pantalla.</li>
+      </ul>
+      <a class="ir" href="https://script.google.com/macros/s/AKfycbwehJHPz85g_HdA1QA8re59dzXTUpnkv7mA61UcNxPZo72ud50F7XPeJPXL2oeiiKNW/exec" target="_blank" rel="noopener">Ir a Matrícula 2027<svg viewBox="0 0 24 24"><path d="M5 12h14M12 5l7 7-7 7"/></svg></a>
+    </div>
+
+    <div class="card">
+      <div class="ic"><svg viewBox="0 0 24 24"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg></div>
+      <h3>Firma de actas y documentos</h3>
+      <p>Las actas de entrevista y otros documentos se firman en pantalla, con el dedo o el mouse. No necesita cuenta de Google.</p>
+      <div class="nota"><svg viewBox="0 0 24 24"><path d="M4 4h16v16H4z"/><path d="M22 6l-10 7L2 6"/></svg><span>Se abre desde el <b>enlace personal que llega a su correo</b>. Si no lo encuentra, revise spam o pida al docente que lo reenvíe.</span></div>
+    </div>
+
+    <div class="card">
+      <div class="ic"><svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="6"/><path d="M15.5 13.5L17 22l-5-3-5 3 1.5-8.5"/></svg></div>
+      <h3>Becas</h3>
+      <p>La postulación a becas del colegio es en línea, durante el proceso de matrícula, con los datos ya ingresados en la ficha.</p>
+      <div class="nota"><svg viewBox="0 0 24 24"><path d="M4 4h16v16H4z"/><path d="M22 6l-10 7L2 6"/></svg><span>El enlace de postulación se envía <b>al correo del apoderado</b> cuando se abre el proceso.</span></div>
+    </div>
+
+  </div>
+</section>
+
+<section class="sec lirmi">
+  <div class="sec-t"><h2>Plataforma Lirmi</h2><p>Notas, asistencia y tareas de su pupilo.</p></div>
+  <div class="cards">
+
+    <div class="card main">
+      <div class="ic"><svg viewBox="0 0 24 24"><rect x="5" y="2" width="14" height="20" rx="2"/><path d="M12 18h0"/></svg></div>
+      <h3>Lirmi Familia · app para apoderados</h3>
+      <p>Toda la información académica de su pupilo en el celular. Disponible solo como aplicación (no tiene versión web).</p>
+      <ul>
+        <li><svg viewBox="0 0 24 24"><path d="M20 6L9 17l-5-5"/></svg>Calificaciones, notas y cronograma de evaluaciones.</li>
+        <li><svg viewBox="0 0 24 24"><path d="M20 6L9 17l-5-5"/></svg>Asistencia del estudiante.</li>
+        <li><svg viewBox="0 0 24 24"><path d="M20 6L9 17l-5-5"/></svg>Descarga de hoja de vida y certificado de alumno regular.</li>
+      </ul>
+      <div class="nota"><svg viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg><span><b>Para ingresar:</b> escriba su RUN de apoderado. La app le enviará un código al correo o al teléfono que registró en la matrícula.</span></div>
+      <div class="tiendas">
+        <a class="tienda" href="https://play.google.com/store/apps/details?id=com.lirmi.app" target="_blank" rel="noopener"><svg viewBox="0 0 24 24"><path d="M5 3l14 9-14 9z"/></svg>Google Play</a>
+        <a class="tienda" href="https://apps.apple.com/cl/app/lirmi-familia/id1449652286" target="_blank" rel="noopener"><svg viewBox="0 0 24 24"><path d="M16 3c-1.5.1-3 1-3.5 2.5M12 7c-2-1-6-1-7 3s1 9 3 10 3-1 4-1 2 2 4 1 3-4 3-4-2-1-2-4 2-4 2-4-2-2-4-2-2 1-3 1z"/></svg>App Store</a>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="ic"><svg viewBox="0 0 24 24"><rect x="2" y="4" width="20" height="13" rx="2"/><path d="M8 21h8M12 17v4"/></svg></div>
+      <h3>Lirmi Estudiantes · aula virtual</h3>
+      <p>Espacio para que el estudiante revise sus tareas y actividades de las asignaturas.</p>
+      <ul>
+        <li><svg viewBox="0 0 24 24"><path d="M20 6L9 17l-5-5"/></svg>Tareas y actividades publicadas por los docentes.</li>
+        <li><svg viewBox="0 0 24 24"><path d="M20 6L9 17l-5-5"/></svg>Ingresa el estudiante, desde el computador o el celular.</li>
+      </ul>
+      <a class="ir" href="https://lms.lirmi.com/login" target="_blank" rel="noopener">Ir a Lirmi Estudiantes<svg viewBox="0 0 24 24"><path d="M5 12h14M12 5l7 7-7 7"/></svg></a>
+    </div>
+
+  </div>
+</section>
+
+<section class="sec">
+  <div class="sec-t"><h2>Cómo agendar una entrevista</h2><p>Toma menos de dos minutos.</p></div>
+  <div class="pasos">
+    <div class="paso"><b>1</b><h4>Identifíquese</h4><p>Ingrese sus datos de apoderado para ver a su pupilo.</p></div>
+    <div class="paso"><b>2</b><h4>Elija docente y horario</h4><p>Verá solo los horarios libres de los docentes de su curso.</p></div>
+    <div class="paso"><b>3</b><h4>Revise su correo</h4><p>Recibirá la confirmación con la fecha, la hora y el enlace para reprogramar.</p></div>
+  </div>
+</section>
+
+<section class="sec">
+  <div class="sec-t"><h2>Información del colegio</h2></div>
+  <div class="links">
+    <a class="lk" href="https://www.instagram.com/maesedavinci" target="_blank" rel="noopener"><div class="ic"><svg viewBox="0 0 24 24"><rect x="2" y="2" width="20" height="20" rx="5"/><circle cx="12" cy="12" r="4"/><path d="M17.5 6.5h0"/></svg></div><div><strong>Redes sociales</strong><span>Actividades y noticias</span></div></a>
+  </div>
+</section>
+
+<section class="sec">
+  <div class="sec-t"><h2>Preguntas frecuentes</h2></div>
+  <div class="faq">
+    <details><summary>No me llegó el correo de confirmación</summary><p>Revise la carpeta de spam o "Promociones". Si no aparece en unos minutos, verifique que el correo registrado en el colegio sea el correcto o comuníquese con el profesor jefe.</p></details>
+    <details><summary>¿Necesito una cuenta de Google?</summary><p>No. Puede agendar entrevistas, completar la matrícula y firmar documentos con cualquier correo y desde cualquier celular o computador.</p></details>
+    <details><summary>¿Cómo reprogramo o cancelo una entrevista?</summary><p>Use el enlace "Mis citas" que llega en el correo de confirmación. Ahí puede cambiar el horario o cancelar la entrevista.</p></details>
+    <details><summary>¿Dónde veo las notas y la asistencia?</summary><p>En la app <b>Lirmi Familia</b>, para Android y iPhone (no tiene versión web). Ingrese con su RUN de apoderado y el código que llega al correo o teléfono que registró en la matrícula. Si esos datos cambiaron, actualícelos en Inspectoría.</p></details>
+    <details><summary>¿El colegio me pedirá mi contraseña?</summary><p>Nunca. El colegio no solicita contraseñas por correo, teléfono ni mensajería. Si recibe una solicitud así, no responda e informe al colegio.</p></details>
+  </div>
+</section>
+
+<section class="sec banda">
+  <div>
+    <h2>Tecnología al servicio de la comunidad</h2>
+    <p>El colegio desarrolla y mantiene sus propias herramientas digitales a través del área de <b>Soporte Enlaces</b>, sobre la plataforma institucional Google Workspace: entrevistas y actas, reserva de recursos pedagógicos, control de ingreso, carga horaria, impresiones y gestión de matrícula.</p>
+  </div>
+  <ul>
+    <li><svg viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>Sus datos se guardan en la cuenta institucional del colegio y solo los ve el personal autorizado.</li>
+    <li><svg viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>Los enlaces que llegan a su correo son personales: no los comparta.</li>
+    <li><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M4.9 4.9l14.2 14.2"/></svg>Nunca le pediremos su contraseña.</li>
+  </ul>
+</section>
+
+<div class="contacto">
+  <span><b>Colegio Maese da Vinci</b> · La Ligua, Región de Valparaíso</span>
+  <span>¿Problemas con un servicio en línea? Soporte Enlaces · <a href="mailto:nicolas.parra@maesedavinci.cl">nicolas.parra@maesedavinci.cl</a></span>
+</div>
+</div>
+
+</body></html>
