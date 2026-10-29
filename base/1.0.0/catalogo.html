@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="es" class="cx-auto-oscuro">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>CMDV Base · Catálogo</title>
+<link rel="icon" href="../../logo.png">
+<link rel="stylesheet" href="cmdv.css">
+<style>
+  body{margin:0;background:var(--cx-bg)}
+  .pag{max-width:860px;margin:0 auto;padding:24px 16px 60px}
+  h1{font:700 30px/1.15 var(--cx-round);margin:4px 0}
+  h2{font:700 20px/1.2 var(--cx-round);margin:34px 0 4px}
+  .ojo{font-size:12px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--cx-cmdv)}
+  p{color:var(--cx-muted);margin:4px 0 12px;max-width:65ch}
+  pre{background:var(--cx-card);border-radius:12px;padding:12px 14px;overflow-x:auto;font:12.5px/1.5 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;box-shadow:var(--cx-shadow);margin:10px 0 0;color:var(--cx-fg)}
+  .demo{margin-top:8px}
+  code{font:12.5px ui-monospace,Menlo,Consolas,monospace;background:var(--cx-fill2);padding:1px 5px;border-radius:5px}
+  .paleta{display:grid;grid-template-columns:repeat(auto-fill,minmax(110px,1fr));gap:8px}
+  .sw{border-radius:12px;padding:46px 10px 8px;color:#fff;font:600 12px/1.3 var(--cx-font)}
+</style>
+</head>
+<body class="cx">
+<div class="pag">
+  <div class="ojo">Colegio Maese da Vinci</div>
+  <h1>CMDV Base <span id="ver" class="cx-tag cx-t-cmdv"></span></h1>
+  <p>Estilos y componentes comunes para todos los sistemas del colegio. Cada sistema los importa con dos líneas y usa la versión que elija.</p>
+  <pre>&lt;link rel="stylesheet" href="https://maesedavinci.github.io/cmdv/base/1.0.0/cmdv.css"&gt;
+&lt;script src="https://maesedavinci.github.io/cmdv/base/1.0.0/cmdv.js"&gt;&lt;/script&gt;
+&lt;!-- los componentes van dentro de un elemento con class="cx" --&gt;</pre>
+
+  <h2>Colores</h2>
+  <p>Colores de sistema de iOS más el verde institucional. Rojo = requiere acción, naranja = advertencia o pendiente, verde = listo o pagado, gris = sin efecto.</p>
+  <div class="paleta" id="paleta"></div>
+
+  <h2>Control segmentado</h2>
+  <p>Para cambiar de vista o de agrupación. Dos a cinco opciones.</p>
+  <div class="demo" id="dSeg"></div>
+  <pre>CX.seg("miDiv", { valor: "estado", items: [{v:"estado", txt:"Estado"}, {v:"tipo", txt:"Tipo"}],
+  onChange: v =&gt; pintar() });</pre>
+
+  <h2>Buscador y píldoras con contador</h2>
+  <p>Filtros rápidos. El contador muestra cuántos quedan con ese filtro; el color indica la gravedad.</p>
+  <div class="cx-toolbar"><div id="dBus"></div></div><div id="dPills"></div>
+  <pre>CX.buscador("busca", { placeholder: "Buscar persona", onInput: q =&gt; pintar() });
+CX.pills("filtros", { valor: "todas", items: [{v:"todas", txt:"Todas", n:12}, {v:"sc", txt:"Sin cubrir", n:3, color:"red"}],
+  onChange: v =&gt; pintar() });</pre>
+
+  <h2>Indicadores</h2>
+  <p>Con <code>onClick</code> cada indicador también filtra la lista.</p>
+  <div id="dKpis"></div>
+  <pre>CX.kpis("kpis", [{v:"sc", color:"var(--cx-red)", titulo:"Sin cubrir", valor:"6 h", sub:"3 personas"}],
+  { activo: filtro, onClick: v =&gt; filtrar(v) });</pre>
+
+  <h2>Lista agrupada</h2>
+  <p>El patrón base: grupos con título, iniciales de color, un toque despliega el detalle y deslizar a la izquierda muestra acciones.</p>
+  <div id="dLista"></div>
+  <pre>CX.lista("lista", { recordar: "aus", grupos: [{ titulo: "Requiere atención", filas: [{
+  id: "AUS-1", nombre: "Navia Núñez Marcela", sub: "Licencia médica · lun 26 → vie 30",
+  derecha: CX.tag("1 sin cubrir", "red"),
+  detalle: () =&gt; "...html...",
+  acciones: [{ txt: "Editar", icono: "✎", color: "blue", fn: id =&gt; editar(id) },
+             { txt: "Anular", icono: "⊘", color: "red", fn: id =&gt; anular(id) }] }] }] });</pre>
+
+  <h2>Franja de períodos</h2>
+  <p>Muestra un día de clases de un vistazo. Pasa el mouse sobre una celda para ver el detalle.</p>
+  <div class="cx-card" id="dFranja"></div>
+  <pre>CX.franja({ periodos: 8, dias: [{ etiqueta: "mar 27", celdas: { 1: {estado:"pg", titulo:"..."}, 7: {estado:"cf"} } }] })
+CX.leyendaFranja()   // pg verde · np gris · cf naranja · sc rojo · in azul</pre>
+
+  <h2>Etiquetas, botones y avance</h2>
+  <div class="cx-card"><div class="cx-btns" id="dTags"></div><div class="cx-btns" style="margin-top:10px">
+    <button class="cx-b">Secundario</button><button class="cx-b cx-fill">Principal</button><button class="cx-b cx-fill-cmdv">Institucional</button><button class="cx-b cx-red">Anular</button>
+    <button class="cx-b" onclick="CX.toast('Guardado')">Ver aviso</button><button class="cx-b" id="bSheet">Ver hoja inferior</button></div>
+    <div style="margin-top:12px"><span class="cx-lbl">6 de 8 horas cubiertas</span><span id="dProg"></span></div></div>
+  <pre>CX.tag("Pagado", "green")   CX.progreso(0.75)   CX.toast("Guardado")   CX.sheet(html) / CX.cerrarSheet()
+&lt;button class="cx-b cx-fill"&gt;Principal&lt;/button&gt;</pre>
+
+  <h2>Utilidades</h2>
+  <pre>CX.esc(texto)  CX.pesos(14000) → "$14.000"  CX.norm("Núñez") → "nunez"  CX.iniciales(nombre)
+CX.colorDe(nombre)  CX.avatar(nombre)  CX.debounce(fn, ms)  CX.guardar(clave, valor)  CX.leer(clave, defecto)</pre>
+</div>
+<script src="cmdv.js"></script>
+<script>
+  document.getElementById("ver").textContent = "v" + CX.VERSION;
+  document.getElementById("paleta").innerHTML = [["cmdv","Institucional"],["blue","Azul"],["green","Verde"],["orange","Naranja"],["red","Rojo"],["purple","Morado"],["teal","Turquesa"],["indigo","Índigo"],["gray","Gris"]]
+    .map(c => `<div class="sw" style="background:var(--cx-${c[0]})">${c[1]}<br><span style="opacity:.8">--cx-${c[0]}</span></div>`).join("");
+  CX.seg("dSeg", { valor: "estado", items: [{ v: "estado", txt: "Estado" }, { v: "tipo", txt: "Tipo" }, { v: "dia", txt: "Día" }], onChange: v => CX.toast("Agrupar por " + v) });
+  CX.buscador("dBus", { placeholder: "Buscar persona, curso o reemplazante", onInput: q => CX.toast("Buscar: " + q) });
+  CX.pills("dPills", { valor: "todas", items: [{ v: "todas", txt: "Vigentes", n: 6 }, { v: "sc", txt: "Sin cubrir", n: 3, color: "red" }, { v: "esp", txt: "En espera", n: 1, color: "orange" }, { v: "lic", txt: "Licencias", n: 2, color: "purple" }, { v: "per", txt: "Permisos", n: 3, color: "blue" }] });
+  CX.kpis("dKpis", [{ v: "a", color: "var(--cx-blue)", titulo: "Ausencias", valor: 6, sub: "2 licencias" }, { v: "sc", color: "var(--cx-red)", titulo: "Sin cubrir", valor: "6 h", sub: "3 personas" },
+    { v: "e", color: "var(--cx-orange)", titulo: "En espera", valor: 1, sub: "de licencia" }, { v: "p", color: "var(--cx-green)", titulo: "A pagar", valor: CX.pesos(103000), sub: "15 h" }], { activo: "sc", onClick: v => CX.toast("Filtro " + v) });
+  const blk = (per, txt, der) => `<div class="cx-blk"><span class="cx-per">${per}</span><div class="cx-bi">${txt}</div>${der}</div>`;
+  CX.lista("dLista", { recordar: "demo", grupos: [
+    { titulo: "Requiere atención", filas: [{ id: "1", nombre: "Navia Núñez Marcela Daniela", sub: "Licencia médica · lun 26 → vie 30 · 5 bloques", derecha: CX.tag("1 sin cubrir", "red"),
+      detalle: () => blk("7°–8°", "mar 27 · 3°B · Salazar Beiza Cinthya<small>⚠ codocencia PIE solo en 7° · 8°: NEEP 3B</small>", CX.tag("⚠ Dentro de su horario", "orange")) + blk("5°–6°", "jue 29 · 6°A · <span style='color:var(--cx-red-t)'>falta asignar</span>", CX.tag("Sin cubrir", "red")),
+      acciones: [{ txt: "Editar", icono: "✎", color: "blue", fn: () => CX.toast("Editar") }, { txt: "Anular", icono: "⊘", color: "red", fn: () => CX.toast("Anular") }] }] },
+    { titulo: "Al día", filas: [{ id: "2", nombre: "Reinoso Chavarría Juan Carlos", sub: "Permiso administrativo · mié 28 · 2 bloques", derecha: `<span class="cx-tag cx-t-green cx-num">${CX.pesos(28000)}</span>`,
+      detalle: () => blk("1°–2°", "mié 28 · 2°B · Martínez Javier", `<span class="cx-tag cx-t-green">${CX.pesos(14000)}</span>`), acciones: [{ txt: "Editar", icono: "✎", fn: () => CX.toast("Editar") }] },
+      { id: "3", nombre: "Arévalo Pimentel Francisca", sub: "Permiso con goce · mar 27", derecha: CX.tag("sin bloques", "gray"), onClick: () => CX.toast("Abrir ficha") }] }] });
+  document.getElementById("dFranja").innerHTML = CX.franja({ periodos: 8, dias: [
+    { etiqueta: "mar 27", celdas: { 1: { estado: "pg", titulo: "1° 3°A Olmos" }, 2: { estado: "pg" }, 7: { estado: "cf", titulo: "7° codocencia" }, 8: { estado: "cf" } } },
+    { etiqueta: "jue 29", celdas: { 3: { estado: "np" }, 4: { estado: "np" }, 5: { estado: "sc" }, 6: { estado: "sc" } } }] }) + CX.leyendaFranja();
+  document.getElementById("dTags").innerHTML = [["Sin cubrir", "red"], ["Pendiente", "orange"], ["Pagado", "green"], ["Permiso", "blue"], ["Licencia", "purple"], ["Sin pago", "gray"], ["CMDV", "cmdv"], ["Info", "teal"]].map(t => CX.tag(t[0], t[1])).join("");
+  document.getElementById("dProg").innerHTML = CX.progreso(.75);
+  document.getElementById("bSheet").onclick = () => CX.sheet(`<div style="display:flex;justify-content:space-between;align-items:center"><b>Hoja inferior</b><button class="cx-b" onclick="CX.cerrarSheet()">Cerrar</button></div><p>Para fichas y detalles sin salir de la lista.</p>`);
+</script>
+</body>
+</html>
