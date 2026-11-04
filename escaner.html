@@ -13,6 +13,9 @@
     body { margin: 0; font-family: Arial, Helvetica, sans-serif; background: var(--fondo); color: var(--texto); }
     main { max-width: 760px; margin: 0 auto; padding: 14px 16px 10px; }
     .volver { display: inline-block; margin-bottom: 10px; color: var(--verde); font-weight: bold; text-decoration: none; font-size: 14px; }
+    .unico { background: #fff; border: 1px solid var(--borde); border-radius: 12px; padding: 10px 12px; margin-bottom: 12px; font-size: 13.5px; color: var(--texto-2); }
+    .contador .pend { color: var(--naranja); font-weight: bold; } .contador .env { color: var(--verde); }
+    .sugerencias button .tipo { float: right; font-size: 11px; font-weight: bold; color: var(--verde); }
     .modos { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; background: #fff; border: 1px solid var(--borde); border-radius: 14px; padding: 5px; margin-bottom: 12px; }
     .modos button { border: 0; border-radius: 10px; padding: 12px 6px; font-size: 15px; font-weight: bold; background: transparent; color: var(--texto-2); cursor: pointer; }
     .modos button.activo { background: var(--verde); color: #fff; }
@@ -109,10 +112,7 @@
     <a class="volver" target="_blank" rel="noopener" href="https://script.google.com/a/macros/maesedavinci.cl/s/AKfycby5El-LDjt9FJdh4cDT4AhVooXrjE9rZN2FYO9qHoBs0dLoiEB2xpQ1ptQpCgl2ZwAZtA/exec?app=salidas">📊 Panel de salidas</a>
   </div>
 
-  <div class="modos" role="tablist">
-    <button id="mFunc" role="tab" onclick="cambiarModo('func')">👔 Ingreso funcionarios<small>Mañana</small></button>
-    <button id="mEst" role="tab" onclick="cambiarModo('est')">🍽️ Almuerzo estudiantes<small>Básica 13:20–14:10 · Media 13:40–14:30</small></button>
-  </div>
+  <div class="unico">📷 Un solo escáner: reconoce si el QR es de <b>funcionario</b> (ingreso) o de <b>estudiante</b> (salida / regreso de almuerzo).</div>
 
   <div class="camara">
     <div id="lector"></div>
@@ -128,7 +128,7 @@
   </div>
 
   <div class="resultado info pop oculto" id="pop" role="alert" aria-live="assertive"></div>
-  <div class="contador"><span id="cModo"></span><span>Escaneados en este equipo: <b id="kSes">0</b></span></div>
+  <div class="contador"><span id="cEnvio">Conectando…</span><span>Escaneados en este equipo: <b id="kSes">0</b></span></div>
 
   <div class="resultado info oculto" id="resultado">
     <div class="mov">Listo</div>
@@ -137,35 +137,10 @@
   </div>
 
   <div class="manual">
-    <input type="search" id="buscar" placeholder="¿QR dañado u olvidado? Busque por nombre…" autocomplete="off" oninput="sugerir()" aria-label="Buscar por nombre">
+    <input type="search" id="buscar" placeholder="¿QR dañado u olvidado? Busque funcionario o estudiante por nombre…" autocomplete="off" oninput="sugerir()" aria-label="Buscar por nombre">
     <div class="sugerencias oculto" id="sugerencias"></div>
   </div>
 
-  <div class="oculto" aria-hidden="true">
-  <div id="panelEst">
-    <div class="kpis">
-      <div class="kpi naranja"><div class="n" id="kSal">–</div><div class="t">Salieron hoy</div></div>
-      <div class="kpi azul"><div class="n" id="kReg">–</div><div class="t">Regresaron</div></div>
-      <div class="kpi" id="kAfuB"><div class="n" id="kAfu">–</div><div class="t">Afuera ahora</div></div>
-    </div>
-    <div class="panel">
-      <h3>Afuera ahora <small id="hEst"></small></h3>
-      <div id="listaAfuera"><div class="vacio">Cargando…</div></div>
-    </div>
-  </div>
-
-  <div id="panelFunc" class="oculto">
-    <div class="kpis" style="grid-template-columns:1fr 1fr;">
-      <div class="kpi verde"><div class="n" id="kIng">–</div><div class="t">Funcionarios con ingreso hoy</div></div>
-      
-    </div>
-  </div>
-
-  <div class="panel">
-    <h3>Últimos escaneos en este equipo</h3>
-    <div id="historial"><div class="vacio">Aún no hay escaneos.</div></div>
-  </div>
-  </div>
   </div>
 </main>
 
@@ -175,14 +150,25 @@
   const sinTildes = s => String(s).normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
   const $ = id => document.getElementById(id);
 
-  let D = null;                 // listas del servidor
-  let modo = new Date().getHours() < 12 ? "func" : "est";
+  /*
+   * Respuesta inmediata: el teléfono tiene las listas y lo escaneado hoy, decide al instante
+   * (ingreso / salida / regreso / ya registrado) y envía los escaneos por detrás en una cola
+   * que sobrevive a cortes de internet. El servidor confirma y, si algo no calza, corrige.
+   */
+  let D = null;                 // listas y reglas del servidor
+  let SERV = { f: {}, e: {} };  // lo de hoy según el servidor
+  let HOY = { f: {}, e: {} };   // SERV + lo que aún está en la cola
+  let desfase = 0;              // reloj del servidor − reloj del teléfono
+  let COLA = [], enVuelo = null, reintento = null, espera = 2000, ultimoContacto = 0;
+  const OPT = {};               // resultado mostrado al instante, por uid
+  const deshacerAlLlegar = {};  // uid enviado que se pidió deshacer → movimiento con que volver a registrar ("" = solo deshacer)
+  const recordar = {};          // código de cada uid, para "Era salida / Era regreso"
   let qr = null, encendida = false, sonido = true, audio = null;
-  let ultimoTexto = "", ultimoMs = 0, turno = 0, sesion = 0;
-  const historial = [];
+  let ultimoTexto = "", ultimoMs = 0, sesion = 0;
 
   /* ---------- conexión con la API (pase temporal del Portal CMDV) ---------- */
   const API = "https://script.google.com/macros/s/AKfycbzw2C9tSBluHQbBnCiPYu5cj_oQTPzl77pyWL58IimlC6tXmufOedR4oc_nfUlK8ZBq/exec";
+  const K_COLA = "cmdv_escaner_cola";
   let TOKEN = "";
   (function leerPase() {
     const m = location.hash.match(/t=([a-f0-9]{32})/);
@@ -191,7 +177,9 @@
       else TOKEN = localStorage.getItem("cmdv_escaner_t") || "";
     } catch (e) { if (m) TOKEN = m[1]; }
     if (m) history.replaceState(null, "", location.pathname);   // el pase no queda en la barra de direcciones
+    try { COLA = JSON.parse(localStorage.getItem(K_COLA) || "[]") || []; } catch (e) { COLA = []; }
   })();
+  function guardarCola() { try { localStorage.setItem(K_COLA, JSON.stringify(COLA)); } catch (e) {} }
 
   function sinPase(msg) {
     try { localStorage.removeItem("cmdv_escaner_t"); } catch (e) {}
@@ -200,46 +188,244 @@
     $("app").classList.add("oculto"); $("sinPase").classList.remove("oculto");
   }
 
-  function gs() {
-    let ok = () => {}, err = () => {};
-    const o = { withSuccessHandler(f) { ok = f; return o; }, withFailureHandler(f) { err = f; return o; } };
-    o.escanerInicio = () => llamar({ accion: "inicio" }, ok, err);
-    o.escanerEstado = () => llamar({ accion: "estado" }, ok, err);
-    o.escanerRegistrar = (modo, codigo, forzar) => llamar({ accion: "registrar", modo, codigo, forzar }, ok, err);
-    o.escanerDeshacer = id => llamar({ accion: "deshacer", id }, ok, err);
-    return o;
+  // Promesa con el resultado; error.red = sin conexión (se reintenta), error.pase = pase vencido
+  function llamar(cuerpo) {
+    cuerpo.t = TOKEN;
+    return fetch(API, { method: "POST", body: JSON.stringify(cuerpo), headers: { "Content-Type": "text/plain;charset=utf-8" } })
+      .then(r => r.json(), () => { const e = new Error("Sin conexión con el servidor."); e.red = true; throw e; })
+      .then(j => {
+        if (j.ok) { ultimoContacto = Date.now(); return j.data; }
+        if (j.pase) sinPase(j.error);
+        const e = new Error(j.error); e.pase = j.pase; throw e;
+      });
   }
 
-  function llamar(cuerpo, ok, err) {
-    cuerpo.t = TOKEN;
-    fetch(API, { method: "POST", body: JSON.stringify(cuerpo), headers: { "Content-Type": "text/plain;charset=utf-8" } })
-      .then(r => r.json())
-      .then(j => { if (j.ok) ok(j.data); else { if (j.pase) sinPase(j.error); err(new Error(j.error)); } })
-      .catch(() => err(new Error("Sin conexión con el servidor. Revise el internet y reintente.")));
-  }
+  /* ---------- hora ---------- */
+  const fmtHora = new Intl.DateTimeFormat("es-CL", { timeZone: "America/Santiago", hour: "2-digit", minute: "2-digit", second: "2-digit", hour12: false });
+  function ahoraServ() { return Date.now() + desfase; }
+  function segDe(ms) { const p = fmtHora.format(new Date(ms)).split(":").map(Number); return (p[0] % 24) * 3600 + p[1] * 60 + p[2]; }
+  function hhmm(seg) { const h = Math.floor(seg / 3600), m = Math.floor(seg % 3600 / 60); return (h < 10 ? "0" : "") + h + ":" + (m < 10 ? "0" : "") + m; }
+  function ajustarReloj(servMs, t0) { if (servMs) desfase = servMs - (t0 + Date.now()) / 2; }
 
   /* ---------- inicio ---------- */
-  cambiarModo(modo, true);
   if (!TOKEN) sinPase();
-  else gs().withSuccessHandler(r => {
-    D = r;
-    $("quien").textContent = r.usuario || "";
-    $("bCamara").disabled = false; $("bCamara").textContent = "Iniciar cámara";
-    mostrar({ tono: "info", mov: "Listo", titulo: "Esperando escaneo…", detalle: Object.keys(r.est).length + " estudiantes y " + Object.keys(r.func).length + " funcionarios cargados." }, false);
-    pintarEstado(r.estado, r.ingresos);
-  }).withFailureHandler(e => mostrar({ tono: "error", mov: "Error", titulo: "No se pudieron cargar las listas", detalle: e.message || e })).escanerInicio();
+  else iniciar();
 
-
-  function cambiarModo(m, inicial) {
-    modo = m;
-    $("mFunc").classList.toggle("activo", m === "func");
-    $("mEst").classList.toggle("activo", m === "est");
-    $("panelEst").classList.toggle("oculto", m !== "est");
-    $("panelFunc").classList.toggle("oculto", m !== "func");
-    $("cModo").textContent = m === "est" ? "🍽️ Almuerzo · se alterna salida / regreso" : "👔 Ingreso de funcionarios";
-    $("buscar").placeholder = m === "est" ? "¿QR dañado u olvidado? Busque al estudiante por nombre…" : "¿QR dañado u olvidado? Busque al funcionario por nombre…";
-    if (!inicial) mostrar({ tono: "info", mov: m === "est" ? "Almuerzo estudiantes" : "Ingreso funcionarios", titulo: "Esperando escaneo…", detalle: "" }, false);
+  function iniciar() {
+    const t0 = Date.now();
+    llamar({ accion: "inicio" }).then(r => {
+      D = r; ajustarReloj(r.ahora, t0);
+      fijarServidor(r.hoy);
+      $("quien").textContent = r.usuario || "";
+      $("bCamara").disabled = false; $("bCamara").textContent = "Iniciar cámara";
+      pintarEnvio();
+      enviar();
+      setInterval(refrescar, 15000);
+    }).catch(e => {
+      if (e.pase) return;
+      $("bCamara").textContent = "Reintentando…";
+      $("cEnvio").innerHTML = '<span class="pend">Sin conexión · reintentando</span>';
+      setTimeout(iniciar, 4000);
+    });
   }
+
+  // Cada 45 s (si la página está a la vista y no hubo contacto reciente) se trae lo escaneado en otros equipos y AppSheet
+  function refrescar() {
+    if (document.hidden || enVuelo || Date.now() - ultimoContacto < 45000) return;
+    const t0 = Date.now();
+    llamar({ accion: "estado" }).then(r => { ajustarReloj(r.ahora, t0); fijarServidor(r.hoy); }).catch(() => {});
+  }
+  document.addEventListener("visibilitychange", () => { if (!document.hidden) { refrescar(); enviar(); } });
+  window.addEventListener("online", () => { espera = 2000; enviar(); });
+
+  function fijarServidor(h) {
+    if (h) SERV = h;
+    HOY = { f: Object.assign({}, SERV.f), e: {} };
+    Object.keys(SERV.e).forEach(k => { HOY.e[k] = SERV.e[k].slice(); });
+    COLA.forEach(aplicar);
+  }
+  // Efecto local de un escaneo en cola (para que el siguiente escaneo del mismo QR se decida bien)
+  function aplicar(x) {
+    if (!x.ef) return;
+    if (x.ef.tipo === "func") { if (HOY.f[x.codigo] == null) HOY.f[x.codigo] = x.ef.seg; }
+    else { const l = HOY.e[x.codigo] || (HOY.e[x.codigo] = []); l.push([x.ef.mov, x.ef.seg]); l.sort((a, b) => a[1] - b[1]); }
+  }
+
+  /* ---------- decidir al instante ---------- */
+  function nivel(curso) { return /medio/i.test(curso) ? "MEDIA" : "BASICA"; }
+  function limite(curso) { const l = D.limites[curso]; return l != null ? l : D.limiteDefecto[nivel(curso)]; }
+
+  function decidir(codigo, forzar, ms) {
+    const seg = segDe(ms);
+    const f = D.func[codigo], e = D.est[codigo];
+    if (f) {
+      if (HOY.f[codigo] != null) return { ok: true, repetido: true, tono: "info", titulo: f[0], detalle: "Ya registró su ingreso hoy a las " + hhmm(HOY.f[codigo]), mov: "INGRESO" };
+      return { ok: true, tono: "ok", titulo: f[0], detalle: "Ingreso " + hhmm(seg) + (f[1] ? " · " + f[1] : ""), mov: "INGRESO", modo: "func",
+        ef: { tipo: "func", seg } };
+    }
+    if (e) {
+      const l = HOY.e[codigo] || [], u = l[l.length - 1];
+      if (!forzar && u && Math.abs(seg - u[1]) < D.repetidoSeg) {
+        const fue = u[0] === "S" ? "SALIDA" : "REGRESO";
+        return { ok: true, repetido: true, tono: "info", titulo: e[0], curso: e[1], mov: fue, codigo,
+          detalle: "Ya se registró " + fue.toLowerCase() + " a las " + hhmm(u[1]) + " (lectura repetida, no se guardó)." };
+      }
+      const sal = forzar ? forzar === "SALIDA" : !(u && u[0] === "S");
+      const ini = D.inicio[nivel(e[1])], lim = limite(e[1]), avisos = [];
+      if (sal && seg < ini) avisos.push("Salida antes de las " + hhmm(ini));
+      if (sal && seg > lim) avisos.push("Salida después del horario de almuerzo");
+      if (!sal && seg > lim) avisos.push("Regreso atrasado (límite " + hhmm(lim) + ")");
+      if (!sal && !l.some(x => x[0] === "S")) avisos.push("No tiene salida registrada hoy");
+      return { ok: true, tono: avisos.length ? "alerta" : "ok", titulo: e[0], curso: e[1], mov: sal ? "SALIDA" : "REGRESO", modo: "est",
+        detalle: (sal ? "Salida " : "Regreso ") + hhmm(seg), avisos, ef: { tipo: "est", seg, mov: sal ? "S" : "R" } };
+    }
+    return null;   // desconocido: decide el servidor (puede ser alguien recién agregado)
+  }
+
+  function nuevoUid() { const a = new Uint8Array(4); crypto.getRandomValues(a); return Array.from(a, b => ("0" + b.toString(16)).slice(-2)).join(""); }
+
+  function procesar(codigo, forzar) {
+    codigo = String(codigo || "").trim();
+    if (!codigo || !D) return;
+    const ms = ahoraServ();
+    const r = decidir(codigo, forzar, ms);
+    if (r && r.repetido) { r.codigo = codigo; mostrar(r); pitido("info"); return; }
+    const x = { uid: nuevoUid(), codigo, forzar: forzar || "", ms: Math.round(ms) };
+    if (r) {
+      x.ef = r.ef; r.id = x.uid; r.uid = x.uid; r.codigo = codigo;
+      OPT[x.uid] = r;
+      mostrar(r); pitido(r.tono === "alerta" ? "alerta" : "ok");
+      if (r.ok) $("kSes").textContent = ++sesion;
+    } else {
+      OPT[x.uid] = { esperando: true };
+      mostrar({ tono: "info espera", mov: "Verificando…", titulo: "Verificando código…", detalle: "" });
+    }
+    COLA.push(x); guardarCola(); aplicar(x); pintarEnvio();
+    enviar();
+  }
+
+  /* ---------- envío en cola ---------- */
+  function enviar() {
+    if (enVuelo || !COLA.length || !D) return;
+    clearTimeout(reintento);
+    enVuelo = COLA.slice(0, 20);
+    const t0 = Date.now();
+    pintarEnvio();
+    llamar({ accion: "lote", items: enVuelo.map(x => ({ uid: x.uid, codigo: x.codigo, forzar: x.forzar, ms: x.ms })) }).then(r => {
+      ajustarReloj(r.ahora, t0);
+      const listos = new Set(enVuelo.map(x => x.uid));
+      COLA = COLA.filter(x => !listos.has(x.uid)); guardarCola();
+      enVuelo = null; espera = 2000;
+      fijarServidor(r.hoy);
+      (r.res || []).forEach(confirmar);
+      pintarEnvio();
+      if (COLA.length) enviar();
+    }).catch(e => {
+      enVuelo = null;
+      // lo que se pidió deshacer mientras se intentaba enviar nunca llegó: se quita de la cola aquí mismo
+      Object.keys(deshacerAlLlegar).forEach(uid => {
+        const i = COLA.findIndex(x => x.uid === uid);
+        if (i === -1) return;
+        const otro = deshacerAlLlegar[uid]; delete deshacerAlLlegar[uid];
+        COLA.splice(i, 1); guardarCola(); fijarServidor();
+        if (otro) volverA(uid, otro); else mostrar({ tono: "info", mov: "Deshecho", titulo: "Registro eliminado", detalle: "Puede volver a escanear." });
+      });
+      if (e.pase) return;
+      pintarEnvio(e.red ? "" : e.message);
+      reintento = setTimeout(enviar, espera);
+      espera = Math.min(espera * 2, 30000);
+    });
+  }
+
+  // Respuesta del servidor para un escaneo: si coincide con lo mostrado no se interrumpe; si no, se avisa.
+  function confirmar(res) {
+    const o = OPT[res.uid] || {};
+    delete OPT[res.uid];
+    if (res.ok && res.modo && !(res.modo === "func" ? D.func : D.est)[res.codigo]) {
+      (res.modo === "func" ? D.func : D.est)[res.codigo] = [res.titulo, res.curso || ""];   // persona recién agregada
+    }
+    if (res.uid in deshacerAlLlegar) {     // se pidió deshacer mientras se enviaba
+      const otro = deshacerAlLlegar[res.uid]; delete deshacerAlLlegar[res.uid];
+      if (res.ok && res.id && !res.repetido) deshacerServidor(res.id, otro); else if (otro) volverA(res.uid, otro);
+      return;
+    }
+    if (o.esperando) {
+      mostrar(res); pitido(res.ok ? (res.tono === "alerta" ? "alerta" : res.repetido ? "info" : "ok") : "error");
+      if (res.ok && !res.repetido) $("kSes").textContent = ++sesion;
+      return;
+    }
+    const igual = o.ok === res.ok && !!o.repetido === !!res.repetido && o.mov === res.mov;
+    if (!igual) {
+      if (o.ok && !o.repetido) $("kSes").textContent = --sesion;
+      if (res.ok && !res.repetido) $("kSes").textContent = ++sesion;
+      res.detalle = "Corregido por el servidor · " + (res.detalle || "");
+      mostrar(res); pitido(res.ok && !res.repetido ? "alerta" : "error");
+    }
+  }
+
+  function pintarEnvio(error) {
+    const n = COLA.length;
+    const viejo = COLA.length && ahoraServ() - COLA[0].ms > 5 * 60000;
+    $("cEnvio").innerHTML = error ? `<span class="pend">⚠ ${esc(error)} · ${n} pendiente${n === 1 ? "" : "s"}</span>`
+      : n ? `<span class="pend">⏳ ${n} pendiente${n === 1 ? "" : "s"} de enviar${viejo ? " · revise el internet: pasados 10 min quedan con la hora de llegada" : ""}</span>`
+      : `<span class="env">✓ Todo enviado</span>`;
+  }
+
+  /* ---------- deshacer / corregir ---------- */
+  function deshacer(uid, otro) {
+    const i = COLA.findIndex(x => x.uid === uid);
+    const enviando = enVuelo && enVuelo.some(x => x.uid === uid);
+    if (i !== -1 && !enviando) {            // todavía no salió del teléfono: se quita de la cola
+      COLA.splice(i, 1); guardarCola(); delete OPT[uid]; fijarServidor(); pintarEnvio();
+      $("kSes").textContent = --sesion;
+      return otro ? volverA(uid, otro) : mostrar({ tono: "info", mov: "Deshecho", titulo: "Registro eliminado", detalle: "Puede volver a escanear." });
+    }
+    $("kSes").textContent = --sesion;
+    if (enviando) { deshacerAlLlegar[uid] = otro || ""; return mostrar({ tono: "info espera", mov: "Deshaciendo…", titulo: "Eliminando el registro…", detalle: "" }); }
+    deshacerServidor(uid, otro);
+  }
+  function deshacerServidor(id, otro) {
+    mostrar({ tono: "info espera", mov: "Deshaciendo…", titulo: "Eliminando el registro…", detalle: "" });
+    const t0 = Date.now();
+    llamar({ accion: "deshacer", id }).then(r => {
+      ajustarReloj(r.ahora, t0); fijarServidor(r.hoy);
+      if (otro) volverA(id, otro);
+      else mostrar({ tono: "info", mov: "Deshecho", titulo: "Registro eliminado", detalle: "Puede volver a escanear." });
+    }).catch(e => mostrar({ tono: "error", mov: "Error", titulo: "No se pudo deshacer", detalle: e.message || e }));
+  }
+  function volverA(uid, otro) { const c = recordar[uid] && recordar[uid].codigo; if (c) procesar(c, otro); }
+
+  /* ---------- aviso emergente ---------- */
+  let popTimer = null;
+  function mostrar(r) {
+    if (r.uid && r.codigo) recordar[r.uid] = { codigo: r.codigo };
+    const tonoMov = r.ok && !r.repetido ? (r.mov === "SALIDA" ? "salida" : r.mov === "REGRESO" ? "regreso" : "ok") : (r.tono || "info");
+    const mov = r.ok ? (r.repetido ? "Ya registrado" : { SALIDA: "↗ Salida", REGRESO: "↙ Regreso", INGRESO: "✓ Ingreso" }[r.mov] || r.mov) : (r.mov || "No registrado");
+    let html = `<div class="mov">${esc(mov)}</div><div class="nom">${esc(r.titulo)}</div>
+      <div class="det">${esc([r.curso, r.detalle].filter(Boolean).join(" · "))}</div>`;
+    if (r.avisos && r.avisos.length) html += `<div class="avs">${r.avisos.map(a => `<span>⚠ ${esc(a)}</span>`).join("")}</div>`;
+    const b = [];
+    if (r.ok && !r.repetido && r.uid) b.push(`<button onclick="deshacer('${esc(r.uid)}')">↶ Deshacer</button>`);
+    if (r.ok && !r.repetido && r.uid && (r.mov === "SALIDA" || r.mov === "REGRESO")) {
+      const otro = r.mov === "SALIDA" ? "REGRESO" : "SALIDA";
+      b.push(`<button onclick="deshacer('${esc(r.uid)}','${otro}')">Era ${otro === "SALIDA" ? "salida" : "regreso"}</button>`);
+    }
+    if (r.ok && r.repetido && r.codigo && D && D.est[r.codigo]) {
+      const otro = r.mov === "SALIDA" ? "REGRESO" : "SALIDA";
+      b.push(`<button onclick="procesar('${esc(r.codigo)}','${otro}')">Registrar ${otro === "SALIDA" ? "salida" : "regreso"} igual</button>`);
+    }
+    if (b.length) html += `<div class="botones">${b.join("")}</div>`;
+    const pop = $("pop");
+    const espera = /espera/.test(r.tono || "");
+    const ico = espera ? '<div class="giro"></div>'
+      : `<div class="ico">${r.ok ? (r.repetido ? "ℹ️" : r.tono === "alerta" ? "⚠️" : r.mov === "SALIDA" ? "↗️" : r.mov === "REGRESO" ? "↙️" : "✅") : r.tono === "error" ? "❌" : "ℹ️"}</div>`;
+    pop.className = "resultado pop " + tonoMov + (r.tono === "alerta" ? " alerta" : "");
+    pop.innerHTML = ico + html + (espera ? "" : '<div class="cerrar">Toque para cerrar</div>');
+    clearTimeout(popTimer);
+    if (!espera) popTimer = setTimeout(cerrarPop, r.ok === false || r.tono === "error" ? 6000 : r.tono === "alerta" ? 4000 : 2200);
+  }
+  function cerrarPop() { clearTimeout(popTimer); $("pop").classList.add("oculto"); }
+  $("pop").addEventListener("click", e => { if (!e.target.closest("button") && !/espera/.test($("pop").className)) cerrarPop(); });
 
   /* ---------- cámara ---------- */
   async function alternarCamara() {
@@ -264,8 +450,7 @@
     prepararAudio();
     const f = input.files && input.files[0];
     input.value = "";
-    if (!f) return;
-    if (typeof Html5Qrcode === "undefined") return;
+    if (!f || typeof Html5Qrcode === "undefined") return;
     new Html5Qrcode("lectorFoto", false).scanFile(f, false).then(t => procesar(t)).catch(() =>
       mostrar({ tono: "error", mov: "Foto", titulo: "No se encontró un QR en la foto", detalle: "Acerque más la credencial y vuelva a intentar." }));
   }
@@ -277,128 +462,23 @@
     procesar(texto);
   }
 
-  /* ---------- registrar ---------- */
-  function procesar(codigo, forzar) {
-    codigo = String(codigo || "").trim();
-    if (!codigo || !D) return;
-    const lista = modo === "est" ? D.est : D.func;
-    const p = lista[codigo];
-    const mio = ++turno;
-    mostrar({ tono: "info espera", mov: "Registrando…", titulo: p ? p[0] : "Verificando código…", detalle: p && modo === "est" ? p[1] : "" });
-    gs()
-      .withSuccessHandler(r => {
-        agregarHistorial(r);
-        if (r.estado) pintarEstado(r.estado);
-        if (r.ok && !r.repetido && modo === "func") { $("kIng").textContent = (Number($("kIng").textContent) || 0) + 1; }
-        if (mio === turno) mostrar(r);
-        pitido(r.ok ? (r.tono === "alerta" ? "alerta" : r.repetido ? "info" : "ok") : "error");
-      })
-      .withFailureHandler(e => { if (mio === turno) mostrar({ tono: "error", mov: "Error", titulo: p ? p[0] : "No se registró", detalle: e.message || e }); pitido("error"); })
-      .escanerRegistrar(modo, codigo, forzar || "");
-  }
-
-  let popTimer = null;
-  function mostrar(r, conPop) {
-    const el = $("resultado");
-    const tonoMov = r.ok && !r.repetido ? (r.mov === "SALIDA" ? "salida" : r.mov === "REGRESO" ? "regreso" : "ok") : (r.tono || "info");
-    el.className = "resultado " + tonoMov + (r.tono === "alerta" ? " alerta" : "");
-    const mov = r.ok ? (r.repetido ? "Ya registrado" : { SALIDA: "↗ Salida", REGRESO: "↙ Regreso", INGRESO: "✓ Ingreso" }[r.mov] || r.mov) : (r.mov || "No registrado");
-    let html = `<div class="mov">${esc(mov)}</div><div class="nom">${esc(r.titulo)}</div>
-      <div class="det">${esc([r.curso, r.detalle].filter(Boolean).join(" · "))}</div>`;
-    if (r.avisos && r.avisos.length) html += `<div class="avs">${r.avisos.map(a => `<span>⚠ ${esc(a)}</span>`).join("")}</div>`;
-    const b = [];
-    if (r.ok && r.id) b.push(`<button onclick="deshacer('${esc(r.id)}')">↶ Deshacer</button>`);
-    if (r.ok && r.modo === "est" && r.id) {
-      const otro = r.mov === "SALIDA" ? "REGRESO" : "SALIDA";
-      b.push(`<button onclick="corregir('${esc(r.id)}','${esc(codigoDe(r))}','${otro}')">Era ${otro === "SALIDA" ? "salida" : "regreso"}</button>`);
-    }
-    if (r.ok && r.repetido && modo === "est" && codigoDe(r)) {
-      const otro = r.mov === "SALIDA" ? "REGRESO" : "SALIDA";
-      b.push(`<button onclick="procesar('${esc(codigoDe(r))}','${otro}')">Registrar ${otro === "SALIDA" ? "salida" : "regreso"} igual</button>`);
-    }
-    if (b.length) html += `<div class="botones">${b.join("")}</div>`;
-    el.innerHTML = html;
-    if (conPop !== false) verPop(r, tonoMov, html);
-  }
-
-  // Aviso emergente encima de la cámara: se cierra solo o al tocarlo
-  function verPop(r, tonoMov, html) {
-    const pop = $("pop");
-    const espera = /espera/.test(r.tono || "");
-    const ico = espera ? '<div class="giro"></div>'
-      : `<div class="ico">${r.ok ? (r.repetido ? "ℹ️" : r.tono === "alerta" ? "⚠️" : r.mov === "SALIDA" ? "↗️" : r.mov === "REGRESO" ? "↙️" : "✅") : r.tono === "error" ? "❌" : "ℹ️"}</div>`;
-    pop.className = "resultado pop " + tonoMov + (r.tono === "alerta" ? " alerta" : "");
-    pop.innerHTML = ico + html + (espera ? "" : '<div class="cerrar">Toque para cerrar</div>');
-    clearTimeout(popTimer);
-    if (!espera) popTimer = setTimeout(cerrarPop, r.ok === false || r.tono === "error" ? 6000 : r.tono === "alerta" ? 4500 : 2500);
-  }
-  function cerrarPop() { clearTimeout(popTimer); $("pop").classList.add("oculto"); }
-  // Tocar el aviso lo cierra; los botones (Deshacer, Era salida…) muestran su propio aviso.
-  $("pop").addEventListener("click", e => { if (!e.target.closest("button") && !/espera/.test($("pop").className)) cerrarPop(); });
-
-  function codigoDe(r) { return r.codigo || ""; }
-
-  function deshacer(id) {
-    mostrar({ tono: "info espera", mov: "Deshaciendo…", titulo: "Eliminando el registro…", detalle: "" });
-    gs().withSuccessHandler(r => {
-      const h = historial.find(x => x.id === id); if (h) { h.deshecho = true; pintarHistorial(); }
-      if (r.estado) pintarEstado(r.estado);
-      mostrar({ tono: "info", mov: "Deshecho", titulo: "Registro eliminado", detalle: "Puede volver a escanear." });
-    }).withFailureHandler(e => mostrar({ tono: "error", mov: "Error", titulo: "No se pudo deshacer", detalle: e.message || e })).escanerDeshacer(id);
-  }
-
-  // Corregir = borrar el registro y volver a registrar con el otro movimiento
-  function corregir(id, codigo, mov) {
-    gs().withSuccessHandler(() => {
-      const h = historial.find(x => x.id === id); if (h) h.deshecho = true;
-      procesar(codigo, mov);
-    }).withFailureHandler(e => mostrar({ tono: "error", mov: "Error", titulo: "No se pudo corregir", detalle: e.message || e })).escanerDeshacer(id);
-  }
-
-  /* ---------- búsqueda manual ---------- */
+  /* ---------- búsqueda manual (funcionarios y estudiantes) ---------- */
   function sugerir() {
     const q = sinTildes($("buscar").value.trim());
     const caja = $("sugerencias");
     if (!D || q.length < 3) { caja.classList.add("oculto"); return; }
-    const lista = modo === "est" ? D.est : D.func;
     const partes = q.split(/\s+/);
-    const r = Object.keys(lista).filter(k => { const t = sinTildes(lista[k][0] + " " + lista[k][1]); return partes.every(p => t.indexOf(p) !== -1); }).slice(0, 12);
-    caja.innerHTML = r.length ? r.map(k => `<button onclick="elegir('${esc(k)}')">${esc(lista[k][0])}<small>${esc(lista[k][1])}</small></button>`).join("")
+    const r = [];
+    [["func", D.func], ["est", D.est]].forEach(([tipo, lista]) => Object.keys(lista).forEach(k => {
+      const t = sinTildes(lista[k][0] + " " + lista[k][1]);
+      if (partes.every(p => t.indexOf(p) !== -1)) r.push([k, lista[k], tipo]);
+    }));
+    caja.innerHTML = r.length ? r.slice(0, 12).map(([k, p, tipo]) => `<button onclick="elegir('${esc(k)}')"><span class="tipo">${tipo === "func" ? "Funcionario" : "Estudiante"}</span>${esc(p[0])}<small>${esc(p[1])}</small></button>`).join("")
       : `<div class="vacio" style="padding:10px 12px;">Sin resultados.</div>`;
     caja.classList.remove("oculto");
   }
   function elegir(k) { prepararAudio(); $("buscar").value = ""; $("sugerencias").classList.add("oculto"); procesar(k); }
   document.addEventListener("click", e => { if (!e.target.closest(".manual")) $("sugerencias").classList.add("oculto"); });
-
-  /* ---------- paneles ---------- */
-  function pintarEstado(e, ingresos) {
-    if (ingresos != null) $("kIng").textContent = ingresos;
-    if (!e) return;
-    $("kSal").textContent = e.salieron; $("kReg").textContent = e.regresaron; $("kAfu").textContent = e.afuera.length;
-    const atr = e.afuera.filter(x => x.atrasado).length;
-    $("kAfuB").className = "kpi " + (atr ? "rojo" : e.afuera.length ? "naranja" : "verde");
-    $("hEst").textContent = (atr ? atr + " pasados del límite · " : "") + "act. " + e.hora;
-    $("listaAfuera").innerHTML = e.afuera.length ? e.afuera.map(x => `<div class="fila${x.atrasado ? " atrasado" : ""}">
-        <div>${esc(x.nombre)}<div class="q">${esc(x.curso)} · límite ${esc(x.limite)}</div></div>
-        <div class="h">${x.atrasado ? "⏰ " : ""}salió ${esc(x.salida)}</div></div>`).join("")
-      : `<div class="vacio">${e.salieron ? "Todos regresaron. ✓" : "Nadie ha salido hoy."}</div>`;
-  }
-
-  function agregarHistorial(r) {
-    const h = new Date();
-    historial.unshift({ id: r.id, hora: ("0" + h.getHours()).slice(-2) + ":" + ("0" + h.getMinutes()).slice(-2), nombre: r.titulo, curso: r.curso || "",
-      mov: r.ok ? (r.repetido ? "REPETIDO" : r.mov) : "ERROR", avisos: (r.avisos || []).join(" · ") || (r.ok ? "" : r.detalle) });
-    if (historial.length > 25) historial.pop();
-    if (r.ok && !r.repetido) $("kSes").textContent = ++sesion;
-    pintarHistorial();
-  }
-
-  function pintarHistorial() {
-    $("historial").innerHTML = historial.length ? historial.map(x => `<div class="fila" style="${x.deshecho ? "opacity:.45;text-decoration:line-through" : ""}">
-      <div><span class="tag ${esc(x.mov)}">${esc(x.mov === "REPETIDO" ? "YA ESTABA" : x.mov)}</span>${esc(x.nombre)}
-        <div class="q">${esc([x.curso, x.avisos].filter(Boolean).join(" · "))}</div></div><div class="h">${esc(x.hora)}</div></div>`).join("")
-      : `<div class="vacio">Aún no hay escaneos.</div>`;
-  }
 
   /* ---------- sonido ---------- */
   function prepararAudio() { try { audio = audio || new (window.AudioContext || window.webkitAudioContext)(); if (audio.state === "suspended") audio.resume(); } catch (e) {} }
