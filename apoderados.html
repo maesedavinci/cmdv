@@ -28,11 +28,12 @@ h1{margin:18px 0 4px;font-size:32px;line-height:1.15;font-weight:800}
 
 /* Aviso de becas en la portada */
 .aviso{margin-top:22px;display:flex;align-items:center;gap:18px;flex-wrap:wrap;background:#fff;color:var(--t);border-radius:14px;padding:16px 18px;box-shadow:0 10px 26px rgba(0,0,0,.18);border-top:4px solid var(--bc)}
+.aviso+.aviso{margin-top:12px}.aviso.alm{--bc:#c2410c;--bc2:#fdeee4}.f-alm{--bc:#c2410c;--bc2:#fdeee4}
 .aviso .ic{width:44px;height:44px;border-radius:12px;background:var(--bc);color:#fff;display:grid;place-items:center}
 .aviso .tx{flex:1;min-width:220px}
 .aviso .tx b{display:flex;align-items:center;gap:8px;font-size:17px}
 .aviso .tx span{color:var(--s);font-size:14px}
-.abierta{display:inline-flex;align-items:center;gap:6px;font-size:11px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:var(--bc);background:var(--bc2);padding:2px 9px;border-radius:999px}
+.abierta{display:inline-flex;align-items:center;gap:6px;font-size:11px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:var(--bc);background:var(--bc2);padding:2px 9px;border-radius:999px;white-space:nowrap}
 .abierta i{width:7px;height:7px;border-radius:50%;background:#16a34a;animation:latido 1.8s infinite}
 @keyframes latido{0%{box-shadow:0 0 0 0 rgba(22,163,74,.6)}70%,100%{box-shadow:0 0 0 7px rgba(22,163,74,0)}}
 .boton{display:inline-flex;align-items:center;gap:8px;padding:11px 18px;border-radius:11px;font-weight:700;font-size:15px;background:var(--bc);color:#fff;transition:transform .15s,box-shadow .15s;white-space:nowrap}
@@ -53,7 +54,7 @@ h1{margin:18px 0 4px;font-size:32px;line-height:1.15;font-weight:800}
 h2{font-size:15px;text-transform:uppercase;letter-spacing:.08em;color:var(--s);margin:28px 0 10px;font-weight:700}
 .filas{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:0 18px;background:#fff;border:1px solid var(--b);border-radius:14px;padding:4px 16px}
 .fila{display:flex;align-items:center;gap:14px;padding:13px 4px;border-bottom:1px solid #edf2ee;transition:background .15s}
-.filas .fila:nth-last-child(-n+2){border-bottom:0}
+.filas .fila:last-child,.filas .fila:nth-last-child(2):nth-child(odd){border-bottom:0}
 a.fila:hover{background:var(--f)}
 a.fila:hover .ir{transform:translateX(3px);color:var(--a)}
 .fila{--a:var(--v)}
@@ -64,7 +65,7 @@ a.fila:hover .ir{transform:translateX(3px);color:var(--a)}
 .fila .tx span{display:block;font-size:13px;color:var(--s)}
 .fila .ir{color:#a3b0a8;transition:transform .2s}
 .etq{font-size:11px;font-weight:700;padding:1px 8px;border-radius:999px;background:#f1f5f3;color:var(--s)}
-.f-bec{--a:var(--bc)}.f-ent{--a:var(--v)}.f-mat{--a:#4338ca}.f-fir{--a:#b45309}.f-lf{--a:#f50157}.f-le{--a:#1e90ff}
+.f-bec{--a:var(--bc)}.f-alm{--a:#c2410c}.f-ent{--a:var(--v)}.f-mat{--a:#4338ca}.f-fir{--a:#b45309}.f-lf{--a:#f50157}.f-le{--a:#1e90ff}
 .tiendas{display:flex;gap:6px}
 .tiendas a{font-size:12px;font-weight:700;padding:5px 10px;border-radius:8px;border:1px solid var(--b);color:var(--t)}
 .tiendas a:hover{border-color:#f50157;color:#f50157}
@@ -115,6 +116,14 @@ details.alerta summary{color:#b42318}
   <h1>Portal del Apoderado</h1>
   <p>Los servicios en línea del colegio, desde su celular y sin papeles.</p>
 
+  <div class="aviso alm">
+    <div class="ic"><svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2"/><circle cx="9" cy="11" r="2"/><path d="M6 16c.6-1.3 1.7-2 3-2s2.4.7 3 2M14 10h4M14 13h3"/></svg></div>
+    <div class="tx">
+      <b>Autorización de salida a almuerzo <span class="abierta"><i></i>Hasta 13-11</span></b>
+      <span>Firme en línea la autorización para la credencial de almuerzo de su hijo/a. Ingrese con el RUN del estudiante, su RUN de apoderado y la fecha de nacimiento del estudiante.</span>
+    </div>
+    <a class="boton" href="https://script.google.com/macros/s/AKfycbwehJHPz85g_HdA1QA8re59dzXTUpnkv7mA61UcNxPZo72ud50F7XPeJPXL2oeiiKNW/exec?vista=almuerzo" target="_blank" rel="noopener">Firmar autorización<svg viewBox="0 0 24 24"><path d="M5 12h14M12 5l7 7-7 7"/></svg></a>
+  </div>
   <div class="aviso">
     <div class="ic"><svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="6"/><path d="M15.5 13.5L17 22l-5-3-5 3 1.5-8.5"/></svg></div>
     <div class="tx">
@@ -141,6 +150,11 @@ details.alerta summary{color:#b42318}
   <a class="fila f-bec" href="https://script.google.com/macros/s/AKfycbwehJHPz85g_HdA1QA8re59dzXTUpnkv7mA61UcNxPZo72ud50F7XPeJPXL2oeiiKNW/exec?vista=becas" target="_blank" rel="noopener">
     <div class="ic"><svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="6"/><path d="M15.5 13.5L17 22l-5-3-5 3 1.5-8.5"/></svg></div>
     <div class="tx"><b>Becas 2027 <span class="abierta"><i></i>Abierta</span></b><span>Postulación en línea con documentos</span></div>
+    <svg class="ir" viewBox="0 0 24 24"><path d="M9 18l6-6-6-6"/></svg>
+  </a>
+  <a class="fila f-alm" href="https://script.google.com/macros/s/AKfycbwehJHPz85g_HdA1QA8re59dzXTUpnkv7mA61UcNxPZo72ud50F7XPeJPXL2oeiiKNW/exec?vista=almuerzo" target="_blank" rel="noopener">
+    <div class="ic"><svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2"/><circle cx="9" cy="11" r="2"/><path d="M6 16c.6-1.3 1.7-2 3-2s2.4.7 3 2M14 10h4M14 13h3"/></svg></div>
+    <div class="tx"><b>Credencial de almuerzo <span class="abierta"><i></i>Hasta 13-11</span></b><span>Autorización de salida en horario de almuerzo</span></div>
     <svg class="ir" viewBox="0 0 24 24"><path d="M9 18l6-6-6-6"/></svg>
   </a>
   <a class="fila f-ent" href="https://script.google.com/macros/s/AKfycbw79QiWMwRUrK_dFtlvKy6NxMqfgWxYnvY_zmiMsq1qirTA8VEC_RiPU7oNpn0B7bg/exec" target="_blank" rel="noopener">
