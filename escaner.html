@@ -233,7 +233,7 @@
   function refrescar() {
     if (document.hidden || enVuelo || Date.now() - ultimoContacto < 45000) return;
     const t0 = Date.now();
-    llamar({ accion: "estado" }).then(r => { ajustarReloj(r.ahora, t0); fijarServidor(r.hoy); }).catch(() => {});
+    llamar({ accion: "estado" }).then(r => { ajustarReloj(r.ahora, t0); fijarServidor(r.hoy); if (r.alm) { D.alm = r.alm; D.almActivo = r.almActivo; } }).catch(() => {});
   }
   document.addEventListener("visibilitychange", () => { if (!document.hidden) { refrescar(); enviar(); } });
   window.addEventListener("online", () => { espera = 2000; enviar(); });
@@ -276,6 +276,8 @@
       if (sal && seg > lim) avisos.push("Salida después del horario de almuerzo");
       if (!sal && seg > lim) avisos.push("Regreso atrasado (límite " + hhmm(lim) + ")");
       if (!sal && !l.some(x => x[0] === "S")) avisos.push("No tiene salida registrada hoy");
+      // Autorización de almuerzo del apoderado (rige desde la fecha que define el servidor)
+      if (sal && D.almActivo) { const a = (D.alm || {})[codigo]; if (!a) avisos.push("Sin autorización de almuerzo"); else if (a === 1) avisos.push("Autorización de almuerzo por confirmar"); }
       return { ok: true, tono: avisos.length ? "alerta" : "ok", titulo: e[0], curso: e[1], mov: sal ? "SALIDA" : "REGRESO", modo: "est",
         detalle: (sal ? "Salida " : "Regreso ") + hhmm(seg), avisos, ef: { tipo: "est", seg, mov: sal ? "S" : "R" } };
     }
