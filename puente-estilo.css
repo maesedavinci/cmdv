@@ -1,0 +1,11 @@
+html,body{margin:0;background:#f4f6f5;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;color:#1d2b24}
+#puente{min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:24px 16px;box-sizing:border-box}
+#puente img{width:96px;height:96px;border-radius:50%;background:#fff;box-shadow:0 6px 18px rgba(0,0,0,.12)}
+#puente .col{margin:14px 0 4px;font-size:12px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:#1b6b42}
+#puente h1{margin:0 0 6px;font-size:20px}
+#puente .tx{margin:0;max-width:380px;color:#55635c;font-size:15px;line-height:1.45}
+#puente .ay{margin-top:14px;font-size:13px;color:#55635c}#puente .ay a{color:#1b6b42}
+#puente button{margin-top:18px;background:#1b6b42;color:#fff;border:0;border-radius:999px;padding:11px 26px;font-size:15px;font-weight:600;cursor:pointer}
+#puente .gira{margin-top:18px;width:28px;height:28px;border-radius:50%;border:3px solid #cfe3d8;border-top-color:#1b6b42;animation:g 1s linear infinite}
+@keyframes g{to{transform:rotate(360deg)}}
+@media (prefers-color-scheme:dark){html,body{background:#111816;color:#e8efeb}#puente .tx,#puente .ay{color:#a9b8b0}}
