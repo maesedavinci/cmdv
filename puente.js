@@ -67,7 +67,7 @@
   var q = location.search.replace(/^\?/, "");
   var url = cfg.api + "?" + (q ? q + "&" : "") + "modo=puente";
   pantalla("Cargando…", "Un momento, por favor.", false);
-  fetch(url, { credentials: "omit", redirect: "follow" })
+  fetch(url, { credentials: "omit", redirect: "follow", cache: "no-store" })
     .then(function (r) { if (!r.ok) throw new Error("HTTP " + r.status); return r.json(); })
     .then(function (d) { if (!d || !d.ok) throw new Error((d && d.mensaje) || "Respuesta no válida"); mostrar(d); })
     .catch(function (e) {
