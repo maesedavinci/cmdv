@@ -254,7 +254,7 @@
   function refrescar() {
     if (document.hidden || enVuelo || Date.now() - ultimoContacto < 45000) return;
     const t0 = Date.now();
-    llamar({ accion: "estado" }).then(r => { ajustarReloj(r.ahora, t0); fijarServidor(r.hoy); if (r.alm) { D.alm = r.alm; D.almActivo = r.almActivo; } if (r.jun) D.jun = r.jun; }).catch(() => {});
+    llamar({ accion: "estado" }).then(r => { ajustarReloj(r.ahora, t0); fijarServidor(r.hoy); if (r.alm) { D.alm = r.alm; D.almActivo = r.almActivo; } if (r.jun) D.jun = r.jun; if (r.ret) D.ret = r.ret; }).catch(() => {});
   }
   document.addEventListener("visibilitychange", () => { if (!document.hidden) { refrescar(); enviar(); } });
   window.addEventListener("online", () => { espera = 2000; enviar(); });
@@ -284,8 +284,14 @@
     for (const k of ["DESAYUNO", "ALMUERZO"]) if (seg >= b[k][0] - c.tolerancia && seg <= b[k][1] + c.tolerancia) return { racion: k, fuera: false };
     return { racion: seg < c.corte ? "DESAYUNO" : "ALMUERZO", fuera: true };
   }
+  // Retirado según la nómina (SIGE): no se registra en ningún lugar
+  function retirado(codigo) {
+    const e = D.est[codigo];
+    return e && (D.ret || {})[codigo] ? { ok: false, tono: "error", titulo: e[0], curso: e[1], mov: "Retirado", detalle: "Estudiante retirado según la nómina (SIGE). No se registró." } : null;
+  }
   function decidirComedor(codigo, ms) {
     const seg = segDe(ms), e = D.est[codigo];
+    const rt = retirado(codigo); if (rt) return rt;
     if (D.func[codigo]) return { ok: false, tono: "error", titulo: D.func[codigo][0], mov: "Comedor", detalle: "Es credencial de funcionario: en el comedor solo se registran estudiantes." };
     if (!e) return null;
     const r0 = racionDe(e[1], seg), corta = r0.racion === "DESAYUNO" ? "D" : "A";
@@ -309,6 +315,7 @@
         ef: { tipo: "func", seg } };
     }
     if (e) {
+      const rt = retirado(codigo); if (rt) return rt;
       const l = HOY.e[codigo] || [], u = l[l.length - 1];
       if (!forzar && u && Math.abs(seg - u[1]) < D.repetidoSeg) {
         const fue = u[0] === "S" ? "SALIDA" : "REGRESO";
