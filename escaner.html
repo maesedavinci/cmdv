@@ -44,6 +44,9 @@
     .resultado.alerta { border-color: #d98a00; box-shadow: 0 0 0 3px rgba(217,138,0,.18); }
     .resultado.error { background: var(--rojo-claro); border-color: var(--rojo); } .resultado.error .mov { color: var(--rojo); }
     .resultado.info { background: #f1f4f2; border-color: #b9c6be; }
+    .resultado.racion { background: var(--verde-claro); border-color: var(--verde); } .resultado.racion .mov { color: var(--verde); }
+    .modos button.comedor.activo { background: #7a4b00; }
+    body.en-comedor .cab { background: linear-gradient(135deg,#7a4b00,#5a3700); }
     .resultado.espera { opacity: .75; }
     .manual { position: relative; margin-bottom: 14px; }
     .manual input { width: 100%; padding: 12px; border: 1px solid #c9d4cd; border-radius: 10px; font-size: 15px; background: #fff; }
@@ -112,7 +115,11 @@
     <a class="volver" target="_blank" rel="noopener" href="https://script.google.com/a/macros/maesedavinci.cl/s/AKfycby5El-LDjt9FJdh4cDT4AhVooXrjE9rZN2FYO9qHoBs0dLoiEB2xpQ1ptQpCgl2ZwAZtA/exec?app=salidas">📊 Panel de salidas</a>
   </div>
 
-  <div class="unico">📷 Un solo escáner: reconoce si el QR es de <b>funcionario</b> (ingreso) o de <b>estudiante</b> (salida / regreso de almuerzo).</div>
+  <div class="modos" role="group" aria-label="Dónde está escaneando">
+    <button id="lPuerta" onclick="fijarLugar('puerta')">🚪 Puerta<small>Ingreso funcionarios · salidas de almuerzo</small></button>
+    <button id="lComedor" class="comedor" onclick="fijarLugar('comedor')">🍽 Comedor<small>Desayuno y almuerzo JUNAEB</small></button>
+  </div>
+  <div class="unico" id="unico"></div>
 
   <div class="camara">
     <div id="lector"></div>
@@ -156,8 +163,8 @@
    * que sobrevive a cortes de internet. El servidor confirma y, si algo no calza, corrige.
    */
   let D = null;                 // listas y reglas del servidor
-  let SERV = { f: {}, e: {} };  // lo de hoy según el servidor
-  let HOY = { f: {}, e: {} };   // SERV + lo que aún está en la cola
+  let SERV = { f: {}, e: {}, j: {} };  // lo de hoy según el servidor (j = raciones JUNAEB)
+  let HOY = { f: {}, e: {}, j: {} };   // SERV + lo que aún está en la cola
   let desfase = 0;              // reloj del servidor − reloj del teléfono
   let COLA = [], enVuelo = null, reintento = null, espera = 2000, ultimoContacto = 0;
   const OPT = {};               // resultado mostrado al instante, por uid
@@ -170,6 +177,18 @@
   const API = "https://script.google.com/macros/s/AKfycbzw2C9tSBluHQbBnCiPYu5cj_oQTPzl77pyWL58IimlC6tXmufOedR4oc_nfUlK8ZBq/exec";
   const K_COLA = "cmdv_escaner_cola";
   let TOKEN = "";
+  let LUGAR = "puerta";          // cada teléfono recuerda dónde está: puerta | comedor
+  function fijarLugar(l) {
+    LUGAR = l === "comedor" ? "comedor" : "puerta";
+    try { localStorage.setItem("cmdv_escaner_lugar", LUGAR); } catch (e) {}
+    $("lPuerta").classList.toggle("activo", LUGAR === "puerta");
+    $("lComedor").classList.toggle("activo", LUGAR === "comedor");
+    document.body.classList.toggle("en-comedor", LUGAR === "comedor");
+    $("unico").innerHTML = LUGAR === "comedor"
+      ? "🍽 <b>Comedor</b>: cada credencial de estudiante registra su <b>desayuno</b> (1er recreo) o <b>almuerzo</b> según su horario. Si no es beneficiario JUNAEB se avisa en rojo y queda registrado."
+      : "📷 Un solo escáner: reconoce si el QR es de <b>funcionario</b> (ingreso) o de <b>estudiante</b> (salida / regreso de almuerzo).";
+    $("buscar").placeholder = LUGAR === "comedor" ? "¿QR dañado u olvidado? Busque al estudiante por nombre…" : "¿QR dañado u olvidado? Busque funcionario o estudiante por nombre…";
+  }
   (function leerPase() {
     const m = location.hash.match(/t=([a-f0-9]{32})/);
     try {
@@ -177,6 +196,7 @@
       else TOKEN = localStorage.getItem("cmdv_escaner_t") || "";
     } catch (e) { if (m) TOKEN = m[1]; }
     if (m) history.replaceState(null, "", location.pathname);   // el pase no queda en la barra de direcciones
+    try { LUGAR = localStorage.getItem("cmdv_escaner_lugar") === "comedor" ? "comedor" : "puerta"; } catch (e) {}
     try { COLA = JSON.parse(localStorage.getItem(K_COLA) || "[]") || []; } catch (e) { COLA = []; }
   })();
   function guardarCola() { try { localStorage.setItem(K_COLA, JSON.stringify(COLA)); } catch (e) {} }
@@ -208,6 +228,7 @@
   function ajustarReloj(servMs, t0) { if (servMs) desfase = servMs - (t0 + Date.now()) / 2; }
 
   /* ---------- inicio ---------- */
+  fijarLugar(LUGAR);
   if (!TOKEN) sinPase();
   else iniciar();
 
@@ -233,21 +254,23 @@
   function refrescar() {
     if (document.hidden || enVuelo || Date.now() - ultimoContacto < 45000) return;
     const t0 = Date.now();
-    llamar({ accion: "estado" }).then(r => { ajustarReloj(r.ahora, t0); fijarServidor(r.hoy); if (r.alm) { D.alm = r.alm; D.almActivo = r.almActivo; } }).catch(() => {});
+    llamar({ accion: "estado" }).then(r => { ajustarReloj(r.ahora, t0); fijarServidor(r.hoy); if (r.alm) { D.alm = r.alm; D.almActivo = r.almActivo; } if (r.jun) D.jun = r.jun; }).catch(() => {});
   }
   document.addEventListener("visibilitychange", () => { if (!document.hidden) { refrescar(); enviar(); } });
   window.addEventListener("online", () => { espera = 2000; enviar(); });
 
   function fijarServidor(h) {
     if (h) SERV = h;
-    HOY = { f: Object.assign({}, SERV.f), e: {} };
+    HOY = { f: Object.assign({}, SERV.f), e: {}, j: {} };
     Object.keys(SERV.e).forEach(k => { HOY.e[k] = SERV.e[k].slice(); });
+    Object.keys(SERV.j || {}).forEach(k => { HOY.j[k] = SERV.j[k].slice(); });
     COLA.forEach(aplicar);
   }
   // Efecto local de un escaneo en cola (para que el siguiente escaneo del mismo QR se decida bien)
   function aplicar(x) {
     if (!x.ef) return;
     if (x.ef.tipo === "func") { if (HOY.f[x.codigo] == null) HOY.f[x.codigo] = x.ef.seg; }
+    else if (x.ef.tipo === "jun") { (HOY.j[x.codigo] || (HOY.j[x.codigo] = [])).push([x.ef.mov, x.ef.seg]); }
     else { const l = HOY.e[x.codigo] || (HOY.e[x.codigo] = []); l.push([x.ef.mov, x.ef.seg]); l.sort((a, b) => a[1] - b[1]); }
   }
 
@@ -255,7 +278,29 @@
   function nivel(curso) { return /medio/i.test(curso) ? "MEDIA" : "BASICA"; }
   function limite(curso) { const l = D.limites[curso]; return l != null ? l : D.limiteDefecto[nivel(curso)]; }
 
+  // Ración según el bloque de colación del nivel (tolerancia antes/después); fuera de horario: la más cercana por hora de corte
+  function racionDe(curso, seg) {
+    const c = D.colaciones, b = c.bloques[nivel(curso)];
+    for (const k of ["DESAYUNO", "ALMUERZO"]) if (seg >= b[k][0] - c.tolerancia && seg <= b[k][1] + c.tolerancia) return { racion: k, fuera: false };
+    return { racion: seg < c.corte ? "DESAYUNO" : "ALMUERZO", fuera: true };
+  }
+  function decidirComedor(codigo, ms) {
+    const seg = segDe(ms), e = D.est[codigo];
+    if (D.func[codigo]) return { ok: false, tono: "error", titulo: D.func[codigo][0], mov: "Comedor", detalle: "Es credencial de funcionario: en el comedor solo se registran estudiantes." };
+    if (!e) return null;
+    const r0 = racionDe(e[1], seg), corta = r0.racion === "DESAYUNO" ? "D" : "A";
+    const previa = (HOY.j[codigo] || []).find(x => x[0] === corta);
+    if (previa) return { ok: true, repetido: true, tono: "info", titulo: e[0], curso: e[1], mov: r0.racion, codigo,
+      detalle: "Ya recibió " + r0.racion.toLowerCase() + " hoy a las " + hhmm(previa[1]) + " (no se guardó de nuevo)." };
+    const benef = !!(D.jun || {})[codigo], avisos = [];
+    if (!benef) avisos.push("No es beneficiario JUNAEB");
+    if (r0.fuera) avisos.push("Fuera del horario de " + r0.racion.toLowerCase());
+    return { ok: true, tono: benef ? (avisos.length ? "alerta" : "ok") : "error", noJun: !benef, titulo: e[0], curso: e[1], mov: r0.racion, modo: "jun",
+      detalle: (r0.racion === "DESAYUNO" ? "Desayuno " : "Almuerzo ") + hhmm(seg) + (benef ? " · JUNAEB" : ""), avisos, ef: { tipo: "jun", seg, mov: corta } };
+  }
+
   function decidir(codigo, forzar, ms) {
+    if (LUGAR === "comedor") return decidirComedor(codigo, ms);
     const seg = segDe(ms);
     const f = D.func[codigo], e = D.est[codigo];
     if (f) {
@@ -278,6 +323,7 @@
       if (!sal && !l.some(x => x[0] === "S")) avisos.push("No tiene salida registrada hoy");
       // Autorización de almuerzo del apoderado (rige desde la fecha que define el servidor)
       if (sal && D.almActivo) { const a = (D.alm || {})[codigo]; if (!a) avisos.push("Sin autorización de almuerzo"); else if (a === 1) avisos.push("Autorización de almuerzo por confirmar"); }
+      if (sal && (D.jun || {})[codigo]) avisos.push("JUNAEB: almuerza en el colegio");
       return { ok: true, tono: avisos.length ? "alerta" : "ok", titulo: e[0], curso: e[1], mov: sal ? "SALIDA" : "REGRESO", modo: "est",
         detalle: (sal ? "Salida " : "Regreso ") + hhmm(seg), avisos, ef: { tipo: "est", seg, mov: sal ? "S" : "R" } };
     }
@@ -292,11 +338,12 @@
     const ms = ahoraServ();
     const r = decidir(codigo, forzar, ms);
     if (r && r.repetido) { r.codigo = codigo; mostrar(r); pitido("info"); return; }
-    const x = { uid: nuevoUid(), codigo, forzar: forzar || "", ms: Math.round(ms) };
+    if (r && r.ok === false) { mostrar(r); pitido("error"); return; }
+    const x = { uid: nuevoUid(), codigo, forzar: forzar || "", ms: Math.round(ms), lugar: LUGAR };
     if (r) {
       x.ef = r.ef; r.id = x.uid; r.uid = x.uid; r.codigo = codigo;
       OPT[x.uid] = r;
-      mostrar(r); pitido(r.tono === "alerta" ? "alerta" : "ok");
+      mostrar(r); pitido(r.tono === "error" ? "error" : r.tono === "alerta" ? "alerta" : "ok");
       if (r.ok) $("kSes").textContent = ++sesion;
     } else {
       OPT[x.uid] = { esperando: true };
@@ -313,7 +360,7 @@
     enVuelo = COLA.slice(0, 20);
     const t0 = Date.now();
     pintarEnvio();
-    llamar({ accion: "lote", items: enVuelo.map(x => ({ uid: x.uid, codigo: x.codigo, forzar: x.forzar, ms: x.ms })) }).then(r => {
+    llamar({ accion: "lote", items: enVuelo.map(x => ({ uid: x.uid, codigo: x.codigo, forzar: x.forzar, ms: x.ms, lugar: x.lugar || "puerta" })) }).then(r => {
       ajustarReloj(r.ahora, t0);
       const listos = new Set(enVuelo.map(x => x.uid));
       COLA = COLA.filter(x => !listos.has(x.uid)); guardarCola();
@@ -352,11 +399,11 @@
       return;
     }
     if (o.esperando) {
-      mostrar(res); pitido(res.ok ? (res.tono === "alerta" ? "alerta" : res.repetido ? "info" : "ok") : "error");
+      mostrar(res); pitido(res.ok ? (res.tono === "error" ? "error" : res.tono === "alerta" ? "alerta" : res.repetido ? "info" : "ok") : "error");
       if (res.ok && !res.repetido) $("kSes").textContent = ++sesion;
       return;
     }
-    const igual = o.ok === res.ok && !!o.repetido === !!res.repetido && o.mov === res.mov;
+    const igual = o.ok === res.ok && !!o.repetido === !!res.repetido && o.mov === res.mov && !!o.noJun === !!res.noJun;
     if (!igual) {
       if (o.ok && !o.repetido) $("kSes").textContent = --sesion;
       if (res.ok && !res.repetido) $("kSes").textContent = ++sesion;
@@ -401,8 +448,10 @@
   let popTimer = null;
   function mostrar(r) {
     if (r.uid && r.codigo) recordar[r.uid] = { codigo: r.codigo };
-    const tonoMov = r.ok && !r.repetido ? (r.mov === "SALIDA" ? "salida" : r.mov === "REGRESO" ? "regreso" : "ok") : (r.tono || "info");
-    const mov = r.ok ? (r.repetido ? "Ya registrado" : { SALIDA: "↗ Salida", REGRESO: "↙ Regreso", INGRESO: "✓ Ingreso" }[r.mov] || r.mov) : (r.mov || "No registrado");
+    const esRacion = r.mov === "DESAYUNO" || r.mov === "ALMUERZO";
+    const tonoMov = r.ok && !r.repetido ? (r.noJun ? "error" : esRacion ? "racion" : r.mov === "SALIDA" ? "salida" : r.mov === "REGRESO" ? "regreso" : "ok") : (r.tono || "info");
+    const mov = r.ok ? (r.repetido ? "Ya registrado" : r.noJun ? "✕ " + (r.mov === "DESAYUNO" ? "Desayuno" : "Almuerzo") + " · NO JUNAEB"
+      : { SALIDA: "↗ Salida", REGRESO: "↙ Regreso", INGRESO: "✓ Ingreso", DESAYUNO: "🍽 Desayuno JUNAEB", ALMUERZO: "🍽 Almuerzo JUNAEB" }[r.mov] || r.mov) : (r.mov || "No registrado");
     let html = `<div class="mov">${esc(mov)}</div><div class="nom">${esc(r.titulo)}</div>
       <div class="det">${esc([r.curso, r.detalle].filter(Boolean).join(" · "))}</div>`;
     if (r.avisos && r.avisos.length) html += `<div class="avs">${r.avisos.map(a => `<span>⚠ ${esc(a)}</span>`).join("")}</div>`;
@@ -412,7 +461,7 @@
       const otro = r.mov === "SALIDA" ? "REGRESO" : "SALIDA";
       b.push(`<button onclick="deshacer('${esc(r.uid)}','${otro}')">Era ${otro === "SALIDA" ? "salida" : "regreso"}</button>`);
     }
-    if (r.ok && r.repetido && r.codigo && D && D.est[r.codigo]) {
+    if (r.ok && r.repetido && r.codigo && D && D.est[r.codigo] && (r.mov === "SALIDA" || r.mov === "REGRESO")) {
       const otro = r.mov === "SALIDA" ? "REGRESO" : "SALIDA";
       b.push(`<button onclick="procesar('${esc(r.codigo)}','${otro}')">Registrar ${otro === "SALIDA" ? "salida" : "regreso"} igual</button>`);
     }
@@ -420,11 +469,12 @@
     const pop = $("pop");
     const espera = /espera/.test(r.tono || "");
     const ico = espera ? '<div class="giro"></div>'
-      : `<div class="ico">${r.ok ? (r.repetido ? "ℹ️" : r.tono === "alerta" ? "⚠️" : r.mov === "SALIDA" ? "↗️" : r.mov === "REGRESO" ? "↙️" : "✅") : r.tono === "error" ? "❌" : "ℹ️"}</div>`;
+      : `<div class="ico">${r.ok ? (r.repetido ? "ℹ️" : r.noJun ? "⛔" : r.tono === "alerta" ? "⚠️" : esRacion ? "🍽️" : r.mov === "SALIDA" ? "↗️" : r.mov === "REGRESO" ? "↙️" : "✅") : r.tono === "error" ? "❌" : "ℹ️"}</div>`;
     pop.className = "resultado pop " + tonoMov + (r.tono === "alerta" ? " alerta" : "");
     pop.innerHTML = ico + html + (espera ? "" : '<div class="cerrar">Toque para cerrar</div>');
     clearTimeout(popTimer);
     if (!espera) popTimer = setTimeout(cerrarPop, r.ok === false || r.tono === "error" ? 6000 : r.tono === "alerta" ? 4000 : 2200);
+    pop.classList.remove("oculto");
   }
   function cerrarPop() { clearTimeout(popTimer); $("pop").classList.add("oculto"); }
   $("pop").addEventListener("click", e => { if (!e.target.closest("button") && !/espera/.test($("pop").className)) cerrarPop(); });
@@ -471,11 +521,11 @@
     if (!D || q.length < 3) { caja.classList.add("oculto"); return; }
     const partes = q.split(/\s+/);
     const r = [];
-    [["func", D.func], ["est", D.est]].forEach(([tipo, lista]) => Object.keys(lista).forEach(k => {
+    (LUGAR === "comedor" ? [["est", D.est]] : [["func", D.func], ["est", D.est]]).forEach(([tipo, lista]) => Object.keys(lista).forEach(k => {
       const t = sinTildes(lista[k][0] + " " + lista[k][1]);
       if (partes.every(p => t.indexOf(p) !== -1)) r.push([k, lista[k], tipo]);
     }));
-    caja.innerHTML = r.length ? r.slice(0, 12).map(([k, p, tipo]) => `<button onclick="elegir('${esc(k)}')"><span class="tipo">${tipo === "func" ? "Funcionario" : "Estudiante"}</span>${esc(p[0])}<small>${esc(p[1])}</small></button>`).join("")
+    caja.innerHTML = r.length ? r.slice(0, 12).map(([k, p, tipo]) => `<button onclick="elegir('${esc(k)}')"><span class="tipo">${tipo === "func" ? "Funcionario" : LUGAR === "comedor" && (D.jun || {})[k] ? "JUNAEB" : "Estudiante"}</span>${esc(p[0])}<small>${esc(p[1])}</small></button>`).join("")
       : `<div class="vacio" style="padding:10px 12px;">Sin resultados.</div>`;
     caja.classList.remove("oculto");
   }
