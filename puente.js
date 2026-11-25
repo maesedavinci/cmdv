@@ -54,7 +54,9 @@
   }
 
   function mostrar(d) {
+    // La pantalla de carga usa color-scheme dark; la página real va en claro (si no, los campos quedan con letra blanca).
     var extra = '<meta name="viewport" content="width=device-width, initial-scale=1">' +
+      '<meta name="color-scheme" content="light"><style>:root{color-scheme:light}</style>' +
       '<link rel="icon" href="logo.png"><script>(' + instalarRun.toString() + ')(' + JSON.stringify(cfg.api) + ');<\/script>';
     var html = String(d.html || "");
     html = /<head[^>]*>/i.test(html) ? html.replace(/<head[^>]*>/i, function (m) { return m + extra; }) : extra + html;
